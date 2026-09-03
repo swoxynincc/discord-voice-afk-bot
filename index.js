@@ -2,7 +2,7 @@ const express = require('express');
 const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
 
-// 1. WEB SUNUCUSU (Render Kapanma Önleyici)
+// 1. ÖNCE WEB SUNUCUSUNU AÇIYORUZ
 const app = express();
 const PORT = process.env.PORT || 10000;
 app.get('/', (req, res) => res.send('THEKANADA AFK BOT IS ALIVE WITH MODERATION COMANDOS!'));
@@ -109,12 +109,13 @@ client.on('messageCreate', async (message) => {
         }
     }
 
-    // 🔇 MUTE KOMUTU (Mention ve Reply Destekli)
+    // 🔇 MUTE KOMUTU (Hem Etiket Hem Reply Destekli)
     if (command === 'mute') {
         if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Zamanaşımına Uğrat` yetkin olmalı baba!');
         }
 
+        // Önce etiket var mı diye bakar, yoksa yanıt verilen mesajın sahibini seçer
         let target = message.mentions.members.first();
         if (!target && message.reference) {
             try {
@@ -139,12 +140,13 @@ client.on('messageCreate', async (message) => {
         }
     }
 
-    // 🔊 UNMUTE KOMUTU (Mention ve Reply Destekli)
+    // 🔊 UNMUTE KOMUTU (Hem Etiket Hem Reply Destekli)
     if (command === 'unmute') {
         if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Zamanaşımına Uğrat` yetkin olmalı baba!');
         }
 
+        // Önce etiket var mı diye bakar, yoksa yanıt verilen mesajın sahibini seçer
         let target = message.mentions.members.first();
         if (!target && message.reference) {
             try {
@@ -169,3 +171,4 @@ client.on('messageCreate', async (message) => {
 });
 
 client.login(BOT_TOKEN);
+
