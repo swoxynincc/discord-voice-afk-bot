@@ -1,8 +1,8 @@
 const express = require('express');
-const { Client, GatewayIntentBits, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
 
-// 1. ÖNCE WEB SUNUCUSUNU AÇIYORUZ (Render'ın hatasını kesin çözer)
+// 1. ÖNCE WEB SUNUCUSUNU AÇIYORUZ (Render Kapanma Önleyici)
 const app = express();
 const PORT = process.env.PORT || 10000;
 app.get('/', (req, res) => res.send('THEKANADA AFK BOT IS ALIVE WITH MODERATION COMANDOS!'));
@@ -41,7 +41,16 @@ client.once('ready', () => {
 
 // CHAT KOMUTLARI DİNLEYİCİSİ
 client.on('messageCreate', async (message) => {
-    if (message.author.bot || !message.content.startsWith(PREFIX)) return;
+    if (message.author.bot) return;
+
+    // 🌟 OTOMATİK SELAMLA SİSTEMİ (PREFIX GEREKTİRMEZ)
+    const mesajIcerik = message.content.toLowerCase().trim();
+    if (mesajIcerik === 'sa' || mesajIcerik === 'saü' || mesajIcerik === 'selamun aleykum' || mesajIcerik === 'selamın aleyküm' || mesajIcerik === 'selamün aleyküm') {
+        return message.reply('Aleykum selam durum cekip bizden olabilirsin');
+    }
+
+    // Eğer mesaj prefix ile başlamıyorsa komutları kontrol etme
+    if (!message.content.startsWith(PREFIX)) return;
 
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
@@ -117,7 +126,7 @@ client.on('messageCreate', async (message) => {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Yasakla` yetkin olmalı baba!');
         }
 
-        const userId = args[0];
+        const userId = args;
         if (!userId) return message.reply('❌ Yasağını kaldıracağım üyenin ID\'sini yazmadın reis! Örn: `!unban 123456789012345678`');
 
         try {
