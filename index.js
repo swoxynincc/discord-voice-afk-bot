@@ -1,8 +1,8 @@
 const express = require('express');
-const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
+const { Client, GatewayIntentBits, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
 
-// 1. ÖNCE WEB SUNUCUSUNU AÇIYORUZ
+// 1. ÖNCE WEB SUNUCUSUNU AÇIYORUZ (Render'ın hatasını kesin çözer)
 const app = express();
 const PORT = process.env.PORT || 10000;
 app.get('/', (req, res) => res.send('THEKANADA AFK BOT IS ALIVE WITH MODERATION COMANDOS!'));
@@ -45,6 +45,31 @@ client.on('messageCreate', async (message) => {
 
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
+
+    // 📜 HELP (YARDIM) KOMUTU
+    if (command === 'help' || command === 'yardım') {
+        const helpText = 
+            `📜 **THEKANADA BOT - TÜM KOMUTLAR VE KULLANIM REHBERİ**\n\n` +
+            `🔨 **${PREFIX}ban <@üye> [sebep]**\n` +
+            `└ **Açıklama:** Belirtilen üyeyi sunucudan kalıcı olarak yasaklar.\n` +
+            `└ **Yetki:** \`Üyeleri Yasakla\` yetkisi gerekir.\n\n` +
+            `🥾 **${PREFIX}kick <@üye> [sebep]**\n` +
+            `└ **Açıklama:** Belirtilen üyeyi sunucudan atar.\n` +
+            `└ **Yetki:** \`Üyeleri At\` yetkisi gerekir.\n\n` +
+            `🔓 **${PREFIX}unban <Kullanıcı-ID>**\n` +
+            `└ **Açıklama:** Banı olan bir üyenin yasağını ID numarasını yazarak kaldırır.\n` +
+            `└ **Yetki:** \`Üyeleri Yasakla\` yetkisi gerekir.\n\n` +
+            `🔇 **${PREFIX}mute <@üye>**\n` +
+            `└ **Açıklama:** Üyeyi 10 dakika boyunca susturur (Yazı yazamaz, sese bağlanamaz).\n` +
+            `└ **Kullanım Yöntemleri:** Hem üyeyi direkt **etiketleyerek** hem de susturmak istediğin kişinin (veya botun attığı onay mesajının) mesajına **Yanıt Vererek (Reply)** tetikleyebilirsin.\n` +
+            `└ **Yetki:** \`Üyeleri Zamanaşımına Uğrat\` yetkisi gerekir.\n\n` +
+            `🔊 **${PREFIX}unmute <@üye>**\n` +
+            `└ **Açıklama:** Susturulan üyenin cezasını anında kaldırır.\n` +
+            `└ **Kullanım Yöntemleri:** Hem üyeyi **etiketleyerek** hem de ceza alan kişinin (veya botun attığı mute onay mesajının) mesajına **Yanıt Vererek (Reply)** susturmayı açabilirsin.\n` +
+            `└ **Yetki:** \`Üyeleri Zamanaşımına Uğrat\` yetkisi gerekir.`;
+
+        return message.reply(helpText);
+    }
 
     // 🔨 BAN KOMUTU
     if (command === 'ban') {
@@ -115,12 +140,16 @@ client.on('messageCreate', async (message) => {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Zamanaşımına Uğrat` yetkin olmalı baba!');
         }
 
-        // Önce etiket var mı diye bakar, yoksa yanıt verilen mesajın sahibini seçer
         let target = message.mentions.members.first();
+        
         if (!target && message.reference) {
             try {
                 const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
-                target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
+                if (repliedMsg.author.id === client.user.id) {
+                    target = repliedMsg.mentions.members.first();
+                } else {
+                    target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
+                }
             } catch (e) {
                 target = null;
             }
@@ -133,7 +162,7 @@ client.on('messageCreate', async (message) => {
 
         try {
             await target.timeout(duration, 'Komutla susturuldu.');
-            message.reply(`🔇 **${target.user.tag}** başarıyla 10 dakika boyunca susturuldu!`);
+            message.reply(`🔇 ${target} başarıyla 10 dakika boyunca susturuldu!`);
         } catch (err) {
             console.error(err);
             message.reply('❌ Susturma esnasında sistemsel bir hata çıktı.');
@@ -146,12 +175,16 @@ client.on('messageCreate', async (message) => {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Zamanaşımına Uğrat` yetkin olmalı baba!');
         }
 
-        // Önce etiket var mı diye bakar, yoksa yanıt verilen mesajın sahibini seçer
         let target = message.mentions.members.first();
+        
         if (!target && message.reference) {
             try {
                 const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
-                target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
+                if (repliedMsg.author.id === client.user.id) {
+                    target = repliedMsg.mentions.members.first();
+                } else {
+                    target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
+                }
             } catch (e) {
                 target = null;
             }
@@ -162,7 +195,7 @@ client.on('messageCreate', async (message) => {
 
         try {
             await target.timeout(null, 'Susturulması kaldırıldı.');
-            message.reply(`🔊 **${target.user.tag}** üyesinin susturulması kaldırıldı. Konuşabilir!`);
+            message.reply(`🔊 ${target} üyesinin susturulması kaldırıldı. Konuşabilir!`);
         } catch (err) {
             console.error(err);
             message.reply('❌ Susturma kaldırma esnasında sistemsel bir hata çıktı.');
