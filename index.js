@@ -23,10 +23,10 @@ const BOT_TOKEN = process.env.DISCORD_TOKEN;
 const SES_KANAL_ID = "1543153290823475211"; 
 const SUNUCU_ID = "1540484134361636884";
 const PREFIX = '!';
-const HOS_GELDIN_KANAL_ID = "1543153290823475211"; // Profiline göre güncellenmiş kanal ID
+const HOS_GELDIN_KANAL_ID = "1543524294318096384"; 
 const SUSP_ROL_ID = "1545092036695429191"; 
 
-// 🌟 AFK VERİ HAFIZASI
+// AFK VERİ HAFIZASI
 const afkMekanizmasi = new Map();
 
 // AKILLI EMBEDLİ HOŞ GELDİN SİSTEMİ
@@ -90,15 +90,16 @@ client.once('ready', () => {
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    // 🌟 AFK OLAN BİRİ CHATE YAZDIĞINDA AFK MODUNDAN ÇIKARMA SİSTEMİ
+    // AFK OLAN BİRİ CHATE YAZDIĞINDA AFK MODUNDAN ÇIKARMA SİSTEMİ
     if (afkMekanizmasi.has(message.author.id)) {
         afkMekanizmasi.delete(message.author.id);
-        return message.reply('AFK Durumunu Sildim Reis!').then(msg => {
-            setTimeout(() => msg.delete().catch(() => null), 5000); // 5 saniye sonra onay mesajını temizler
-        });
+        message.reply('AFK Durumunu Sildim Reis!').then(msg => {
+            setTimeout(() => msg.delete().catch(() => null), 5000);
+        }).catch(() => null);
+        return;
     }
 
-    // 🌟 CHATTE BİRİSİ AFK OLAN BİRİNİ ETİKETLEDİĞİNDE UYARMA SİSTEMİ
+    // CHATTE BİRİSİ AFK OLAN BİRİNİ ETİKETLEDİĞİNDE UYARMA SİSTEMİ
     if (message.mentions.members.size > 0) {
         message.mentions.members.forEach((mentionMember) => {
             if (afkMekanizmasi.has(mentionMember.id)) {
@@ -119,7 +120,7 @@ client.on('messageCreate', async (message) => {
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
-    // 🌟 AFK KOMUTU TETİKLEYİCİSİ
+    // 💤 AFK KOMUTU TETİKLEYİCİSİ
     if (command === 'afk') {
         const sebep = args.join(' ') || 'Sebep belirtilmedi';
         afkMekanizmasi.set(message.author.id, {
@@ -184,7 +185,7 @@ client.on('messageCreate', async (message) => {
         if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Yasakla` yetkin olmalı baba!');
         }
-        const userId = args;
+        const userId = args[0];
         if (!userId) return message.reply('❌ Yasağını kaldıracağım üyenin ID\'sini yazmadın reis!');
         try {
             const bannedUsers = await message.guild.bans.fetch();
@@ -213,5 +214,5 @@ client.on('messageCreate', async (message) => {
         if (!target) return message.reply('❌ Kimi susturacağımı seçmedin reis!');
         if (!target.moderatable) return message.reply('❌ Bu üyeyi susturmaya gücüm yetmiyor!');
         try {
-
-        
+            await target.timeout(10 * 60 * 1000, 'Komutla susturuldu.');
+message.reply(🔇 ${target} başarıyla 10 dakika boyunca susturuldu!);} catch (err) { message.reply('❌ Susturma esnasında sistemsel bir hata çıktı.'); }}// 🔊 UNMUTE KOMUTUif (command === 'unmute') {if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {return message.reply('❌ Bu komutu kullanmak için Üyeleri Zamanaşımına Uğrat yetkin olmalı baba!');}let target = message.mentions.members.first();if (!target && message.reference) {try {const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);if (repliedMsg.author.id === client.user.id) {target = repliedMsg.mentions.members.first();} else {target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);}} catch (e) { target = null; }}if (!target) return message.reply('❌ Kimin susturmasını kaldıracağımı seçmedin reis!');if (!target.communicationDisabledUntilTimestamp) return message.reply('❌ Bu üye zaten susturulmamış baba.');try {await target.timeout(null, 'Susturulması kaldırıldı.');message.reply(🔊 ${target} üyesinin susturulması kaldırıldı. Konuşabilir!);} catch (err) { message.reply('❌ Susturma kaldırma esnasında sistemsel bir hata çıktı.'); }}});client.login(BOT_TOKEN);
