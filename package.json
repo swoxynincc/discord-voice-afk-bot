@@ -1,11 +1,11 @@
 {
-  "name": "BOT_NAME",
+  "name": "afk-bot",
   "version": "1.0.0",
   "main": "index.js",
   "dependencies": {
     "discord.js": "^14.14.1",
     "@discordjs/voice": "^0.16.1",
-    "libsodium-crypto-wrapper": "^0.0.1a",
+    "libsodium-wrappers": "^0.7.13",
     "ffmpeg-static": "^5.2.0",
     "@discordjs/opus": "^0.9.0"
   },
