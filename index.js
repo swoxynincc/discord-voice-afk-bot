@@ -23,52 +23,51 @@ const BOT_TOKEN = process.env.DISCORD_TOKEN;
 const SES_KANAL_ID = "1543153290823475211"; 
 const SUNUCU_ID = "1540484134361636884";
 const PREFIX = '!';
-const HOS_GELDIN_KANAL_ID = "1543524294318096384"; 
-const SUSP_ROL_ID = "1545092036695429191"; // 🌟 Belirttiğin tehlikeli üye rolü
+const HOS_GELDIN_KANAL_ID = "1543153290823475211"; // Profiline göre güncellenmiş kanal ID
+const SUSP_ROL_ID = "1545092036695429191"; 
 
-// 🌟 AKILLI EMBEDLİ HOŞ GELDİN SİSTEMİ
+// 🌟 AFK VERİ HAFIZASI
+const afkMekanizmasi = new Map();
+
+// AKILLI EMBEDLİ HOŞ GELDİN SİSTEMİ
 client.on('guildMemberAdd', async (member) => {
     if (member.guild.id !== SUNUCU_ID) return;
     
-    const kanal = member.guild.channels.cache.get(HOS_GELDIN_KANAL_ID);
-    if (!kanal) return;
+    try {
+        const kanal = await member.guild.channels.fetch(HOS_GELDIN_KANAL_ID).catch(() => null);
+        if (!kanal) return;
 
-    // Hesap oluşturma tarihi hesaplamaları
-    const kurulusMilisaniye = member.user.createdTimestamp;
-    const simdikiZaman = Date.now();
-    const besAyMilisaniye = 5 * 30.4 * 24 * 60 * 60 * 1000; // 5 aylık ortalama süre
-    
-    const hesapYasiMilisaniye = simdikiZaman - kurulusMilisaniye;
-    const kurulusTarihi = new Date(kurulusMilisaniye).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-
-    // Discord formatında dinamik zaman kodu (Örn: 2 yıl önce oluşturuldu)
-    const discordZamanFormati = `<t:${Math.floor(kurulusMilisaniye / 1000)}:R>`;
-
-    // Embed Mesajı İnşa Ediliyor
-    const embed = new EmbedBuilder()
-        .setAuthor({ name: member.user.username, iconURL: member.user.displayAvatarURL({ dynamic: true }) })
-        .setDescription(`${member} has joined THEKANADA, I dont know who invited them.`)
-        .addFields({ name: '📅 Hesap Kuruluş Tarihi', value: `\`${kurulusTarihi}\` (${discordZamanFormati})`, inline: false })
-        .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-        .setTimestamp();
-
-    // 5 Aydan Yeni mi Eski mi Kontrolü
-    if (hesapYasiMilisaniye < besAyMilisaniye) {
-        // 🚨 HESAP TEHLİKELİ (5 Aydan Yeni)
-        embed.setTitle('🚨 Şüpheli Hesap Girişi!')
-             .setColor('#ff0000') // Kırmızı Renk
-             .addFields({ name: '🛡️ Güvenlik Durumu', value: '❌ **Tehlikeli Üye!** (Hesap 5 aydan daha yeni)', inline: false });
+        const kurulusMilisaniye = member.user.createdTimestamp;
+        const simdikiZaman = Date.now();
+        const besAyMilisaniye = 5 * 30.4 * 24 * 60 * 60 * 1000; 
         
-        // Tehlikeli üyeye otomatik olarak rolü veriyoruz
-        await member.roles.add(SUSP_ROL_ID).catch(err => console.error("Rol verme hatası:", err));
-    } else {
-        // ✅ HESAP GÜVENLİ (5 Aydan Eski)
-        embed.setTitle('✅ Yeni Üye Katıldı!')
-             .setColor('#00ff00') // Yeşil Renk
-             .addFields({ name: '🛡️ Güvenlik Durumu', value: '🛡️ **Güvenilir Üye** (Hesap 5 aydan daha eski)', inline: false });
-    }
+        const hesapYasiMilisaniye = simdikiZaman - kurulusMilisaniye;
+        const kurulusTarihi = new Date(kurulusMilisaniye).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
+        const discordZamanFormati = `<t:${Math.floor(kurulusMilisaniye / 1000)}:R>`;
 
-    kanal.send({ embeds: [embed] }).catch(err => console.error("Embed gönderme hatası:", err));
+        const embed = new EmbedBuilder()
+            .setAuthor({ name: member.user.username, iconURL: member.user.displayAvatarURL({ dynamic: true }) })
+            .setDescription(`${member} has joined THEKANADA, I dont know who invited them.`)
+            .addFields({ name: '📅 Hesap Kuruluş Tarihi', value: `\`${kurulusTarihi}\` (${discordZamanFormati})`, inline: false })
+            .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+            .setTimestamp();
+
+        if (hesapYasiMilisaniye < besAyMilisaniye) {
+            embed.setTitle('🚨 Şüpheli Hesap Girişi!')
+                 .setColor('#ff0000') 
+                 .addFields({ name: '🛡️ Güvenlik Durumu', value: '❌ **Tehlikeli Üye!** (Hesap 5 aydan daha yeni)', inline: false });
+            
+            await member.roles.add(SUSP_ROL_ID).catch(() => null);
+        } else {
+            embed.setTitle('✅ Yeni Üye Katıldı!')
+                 .setColor('#00ff00') 
+                 .addFields({ name: '🛡️ Güvenlik Durumu', value: '🛡️ **Güvenilir Üye** (Hesap 5 aydan daha eski)', inline: false });
+        }
+
+        await kanal.send({ embeds: [embed] }).catch(() => null);
+    } catch (error) {
+        console.error(error);
+    }
 });
 
 client.once('ready', () => {
@@ -91,6 +90,24 @@ client.once('ready', () => {
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
+    // 🌟 AFK OLAN BİRİ CHATE YAZDIĞINDA AFK MODUNDAN ÇIKARMA SİSTEMİ
+    if (afkMekanizmasi.has(message.author.id)) {
+        afkMekanizmasi.delete(message.author.id);
+        return message.reply('AFK Durumunu Sildim Reis!').then(msg => {
+            setTimeout(() => msg.delete().catch(() => null), 5000); // 5 saniye sonra onay mesajını temizler
+        });
+    }
+
+    // 🌟 CHATTE BİRİSİ AFK OLAN BİRİNİ ETİKETLEDİĞİNDE UYARMA SİSTEMİ
+    if (message.mentions.members.size > 0) {
+        message.mentions.members.forEach((mentionMember) => {
+            if (afkMekanizmasi.has(mentionMember.id)) {
+                const afkBilgisi = afkMekanizmasi.get(mentionMember.id);
+                message.reply(`⚠️ **${mentionMember.user.username}** Şuandan itibaren **${afkBilgisi.sebep}** ile AFK!`).catch(() => null);
+            }
+        });
+    }
+
     // OTOMATİK SELAMLA SİSTEMİ
     const mesajIcerik = message.content.toLowerCase().trim();
     if (mesajIcerik === 'sa' || mesajIcerik === 'saü' || mesajIcerik === 'selamun aleykum' || mesajIcerik === 'selamın aleyküm' || mesajIcerik === 'selamün aleyküm') {
@@ -102,10 +119,22 @@ client.on('messageCreate', async (message) => {
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
+    // 🌟 AFK KOMUTU TETİKLEYİCİSİ
+    if (command === 'afk') {
+        const sebep = args.join(' ') || 'Sebep belirtilmedi';
+        afkMekanizmasi.set(message.author.id, {
+            sebep: sebep,
+            zaman: Date.now()
+        });
+        return message.reply(`💤 Başarıyla AFK moduna geçtin reis. Gerekçe: **${sebep}**`);
+    }
+
     // 📜 HELP KOMUTU
     if (command === 'help' || command === 'yardım') {
         const helpText = 
             `📜 **THEKANADA BOT - TÜM KOMUTLAR VE KULLANIM REHBERİ**\n\n` +
+            `💤 **${PREFIX}afk [sebep]**\n` +
+            `└ **Açıklama:** Sizi AFK moduna alır. Birisi sizi etiketlerse bot gerekçenizi söyler.\n\n` +
             `🔨 **${PREFIX}ban <@üye> [sebep]**\n` +
             `└ **Açıklama:** Belirtilen üyeyi sunucudan kalıcı olarak yasaklar.\n\n` +
             `🥾 **${PREFIX}kick <@üye> [sebep]**\n` +
@@ -155,7 +184,7 @@ client.on('messageCreate', async (message) => {
         if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Yasakla` yetkin olmalı baba!');
         }
-        const userId = args[0];
+        const userId = args;
         if (!userId) return message.reply('❌ Yasağını kaldıracağım üyenin ID\'sini yazmadın reis!');
         try {
             const bannedUsers = await message.guild.bans.fetch();
@@ -184,25 +213,5 @@ client.on('messageCreate', async (message) => {
         if (!target) return message.reply('❌ Kimi susturacağımı seçmedin reis!');
         if (!target.moderatable) return message.reply('❌ Bu üyeyi susturmaya gücüm yetmiyor!');
         try {
-            await target.timeout(10 * 60 * 1000, 'Komutla susturuldu.');
-            message.reply(`🔇 ${target} başarıyla 10 dakika boyunca susturuldu!`);
-        } catch (err) { message.reply('❌ Susturma esnasında sistemsel bir hata çıktı.'); }
-    }
 
-    // 🔊 UNMUTE KOMUTU
-    if (command === 'unmute') {
-        if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için `Üyeleri Zamanaşımına Uğrat` yetkin olmalı baba!');
-        }
-        let target = message.mentions.members.first();
-        if (!target && message.reference) {
-            try {
-                const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
-                if (repliedMsg.author.id === client.user.id) {
-                    target = repliedMsg.mentions.members.first();
-                } else {
-                    target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
-                }
-            } catch (e) { target = null; }
-        }
-        if (!target) return message.reply('❌ Kimin susturmasını kaldıracağımı seçmedin reis!');
+        
