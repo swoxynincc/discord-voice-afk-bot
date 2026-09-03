@@ -2,13 +2,11 @@ const express = require('express');
 const { Client, GatewayIntentBits, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
 
-// 1. ÖNCE WEB SUNUCUSUNU AÇIYORUZ (Render Kapanma Önleyici)
 const app = express();
 const PORT = process.env.PORT || 10000;
-app.get('/', (req, res) => res.send('THEKANADA AFK BOT IS ALIVE WITH MODERATION COMANDOS!'));
-app.listen(PORT, '0.0.0.0', () => console.log(`Web sunucusu ${PORT} portunda aktif.`));
+app.get('/', (req, res) => { res.send('THEKANADA AFK BOT IS ALIVE WITH MODERATION COMANDOS!'); });
+app.listen(PORT, '0.0.0.0', () => { console.log('Web sunucusu aktif.'); });
 
-// 2. DISCORD BOT AYARLARI
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -26,13 +24,10 @@ const PREFIX = '!';
 const HOS_GELDIN_KANAL_ID = "1543524294318096384"; 
 const SUSP_ROL_ID = "1545092036695429191"; 
 
-// AFK VERİ HAFIZASI
 const afkMekanizmasi = new Map();
 
-// AKILLI EMBEDLİ HOŞ GELDİN SİSTEMİ
 client.on('guildMemberAdd', async (member) => {
     if (member.guild.id !== SUNUCU_ID) return;
-    
     try {
         const kanal = await member.guild.channels.fetch(HOS_GELDIN_KANAL_ID).catch(() => null);
         if (!kanal) return;
@@ -40,7 +35,6 @@ client.on('guildMemberAdd', async (member) => {
         const kurulusMilisaniye = member.user.createdTimestamp;
         const simdikiZaman = Date.now();
         const besAyMilisaniye = 5 * 30.4 * 24 * 60 * 60 * 1000; 
-        
         const hesapYasiMilisaniye = simdikiZaman - kurulusMilisaniye;
         const kurulusTarihi = new Date(kurulusMilisaniye).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
         const discordZamanFormati = `<t:${Math.floor(kurulusMilisaniye / 1000)}:R>`;
@@ -56,14 +50,12 @@ client.on('guildMemberAdd', async (member) => {
             embed.setTitle('🚨 Şüpheli Hesap Girişi!')
                  .setColor('#ff0000') 
                  .addFields({ name: '🛡️ Güvenlik Durumu', value: '❌ **Tehlikeli Üye!** (Hesap 5 aydan daha yeni)', inline: false });
-            
             await member.roles.add(SUSP_ROL_ID).catch(() => null);
         } else {
             embed.setTitle('✅ Yeni Üye Katıldı!')
                  .setColor('#00ff00') 
                  .addFields({ name: '🛡️ Güvenlik Durumu', value: '🛡️ **Güvenilir Üye** (Hesap 5 aydan daha eski)', inline: false });
         }
-
         await kanal.send({ embeds: [embed] }).catch(() => null);
     } catch (error) {
         console.error(error);
@@ -82,15 +74,13 @@ client.once('ready', () => {
         });
         console.log("Ses kanalına başarıyla Giriş Yaptı!");
     } catch (error) {
-        console.error("Hata çıktı reis:", error);
+        console.error("Hata çıktı:", error);
     }
 });
 
-// CHAT KOMUTLARI DİNLEYİCİSİ
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
-    // AFK OLAN BİRİ CHATE YAZDIĞINDA AFK MODUNDAN ÇIKARMA SİSTEMİ
     if (afkMekanizmasi.has(message.author.id)) {
         afkMekanizmasi.delete(message.author.id);
         message.reply('AFK Durumunu Sildim Reis!').then(msg => {
@@ -99,7 +89,6 @@ client.on('messageCreate', async (message) => {
         return;
     }
 
-    // CHATTE BİRİSİ AFK OLAN BİRİNİ ETİKETLEDİĞİNDE UYARMA SİSTEMİ
     if (message.mentions.members.size > 0) {
         message.mentions.members.forEach((mentionMember) => {
             if (afkMekanizmasi.has(mentionMember.id)) {
@@ -109,9 +98,9 @@ client.on('messageCreate', async (message) => {
         });
     }
 
-    // OTOMATİK SELAMLA SİSTEMİ
     const mesajIcerik = message.content.toLowerCase().trim();
-    if (mesajIcerik === 'sa' || mesajIcerik === 'saü' || mesajIcerik === 'selamun aleykum' || mesajIcerik === 'selamın aleyküm' || mesajIcerik === 'selamün aleyküm') {
+    const selamlar = ['sa', 'saü', 'selamun aleykum', 'selamın aleyküm', 'selamün aleyküm'];
+    if (selamlar.includes(mesajIcerik)) {
         return message.reply('Aleykum selam durum cekip bizden olabilirsin');
     }
 
@@ -120,85 +109,62 @@ client.on('messageCreate', async (message) => {
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
-    // 💤 AFK KOMUTU TETİKLEYİCİSİ
     if (command === 'afk') {
         const sebep = args.join(' ') || 'Sebep belirtilmedi';
-        afkMekanizmasi.set(message.author.id, {
-            sebep: sebep,
-            zaman: Date.now()
-        });
+        afkMekanizmasi.set(message.author.id, { sebep: sebep, zaman: Date.now() });
         return message.reply(`💤 Başarıyla AFK moduna geçtin reis. Gerekçe: **${sebep}**`);
     }
 
-    // 📜 HELP KOMUTU
     if (command === 'help' || command === 'yardım') {
-        const helpText = 
-            `📜 **THEKANADA BOT - TÜM KOMUTLAR VE KULLANIM REHBERİ**\n\n` +
-            `💤 **${PREFIX}afk [sebep]**\n` +
-            `└ **Açıklama:** Sizi AFK moduna alır. Birisi sizi etiketlerse bot gerekçenizi söyler.\n\n` +
-            `🔨 **${PREFIX}ban <@üye> [sebep]**\n` +
-            `└ **Açıklama:** Belirtilen üyeyi sunucudan kalıcı olarak yasaklar.\n\n` +
-            `🥾 **${PREFIX}kick <@üye> [sebep]**\n` +
-            `└ **Açıklama:** Belirtilen üyeyi sunucudan atar.\n\n` +
-            `🔓 **${PREFIX}unban <Kullanıcı-ID>**\n` +
-            `└ **Açıklama:** Banı olan bir üyenin yasağını ID ile kaldırır.\n\n` +
-            `🔇 **${PREFIX}mute <@üye>**\n` +
-            `└ **Açıklama:** Üyeyi 10 dakika boyunca susturur (Reply/Mention).\n\n` +
-            `🔊 **${PREFIX}unmute <@üye>**\n` +
-            `└ **Açıklama:** Susturulan üyenin cezasını anında kaldırır (Reply/Mention).`;
-
+        const helpText = `📜 **THEKANADA BOT - TÜM KOMUTLAR**\n\n💤 **${PREFIX}afk [sebep]**\n└ Sizi AFK moduna alır.\n\n🔨 **${PREFIX}ban <@üye>**\n└ Üyeyi kalıcı yasaklar.\n\n🥾 **${PREFIX}kick <@üye>**\n└ Üyeyi sunucudan atar.\n\n🔓 **${PREFIX}unban <ID>**\n└ Üyenin banını kaldırır.\n\n🔇 **${PREFIX}mute <@üye>**\n└ Üyeyi 10 dakika susturur (Reply/Mention).\n\n🔊 **${PREFIX}unmute <@üye>**\n└ Susturmayı kaldırır (Reply/Mention).`;
         return message.reply(helpText);
     }
 
-    // 🔨 BAN KOMUTU
     if (command === 'ban') {
         if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için `Üyeleri Yasakla` yetkin olmalı baba!');
+            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
         }
         const target = message.mentions.members.first();
         if (!target) return message.reply('❌ Kimi banlayacağımı etiketlemedin reis!');
-        if (!target.bannable) return message.reply('❌ Bu üye benden daha yüksek bir role sahip, uçuramam!');
+        if (!target.bannable) return message.reply('❌ Bu üyenin rolü benden üstte!');
         const reason = args.slice(1).join(' ') || 'Gerekçe belirtilmedi.';
         try {
             await target.ban({ reason: reason });
-            message.reply(`🔨 **${target.user.tag}** sunucudan kalıcı olarak uçuruldu! \n**Gerekçe:** ${reason}`);
-        } catch (err) { message.reply('❌ Banlama esnasında sistemsel bir hata çıktı.'); }
+            message.reply(`🔨 **${target.user.tag}** sunucudan uçuruldu! \n**Gerekçe:** ${reason}`);
+        } catch (err) { message.reply('❌ Banlama esnasında hata çıktı.'); }
     }
 
-    // 🥾 KICK KOMUTU
     if (command === 'kick') {
         if (!message.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için `Üyeleri At` yetkin olmalı baba!');
+            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
         }
         const target = message.mentions.members.first();
         if (!target) return message.reply('❌ Kimi sunucudan atacağımı etiketlemedin reis!');
-        if (!target.kickable) return message.reply('❌ Bu üyenin rolü benden üstte, atamam!');
+        if (!target.kickable) return message.reply('❌ Bu üyenin rolü benden üstte!');
         const reason = args.slice(1).join(' ') || 'Gerekçe belirtilmedi.';
         try {
             await target.kick(reason);
-            message.reply(`🥾 **${target.user.tag}** sunucudan tekmeleyerek atıldı! \n**Gerekçe:** ${reason}`);
-        } catch (err) { message.reply('❌ Atma esnasında sistemsel bir hata çıktı.'); }
+            message.reply(`🥾 **${target.user.tag}** sunucudan atıldı! \n**Gerekçe:** ${reason}`);
+        } catch (err) { message.reply('❌ Atma esnasında hata çıktı.'); }
     }
 
-    // 🔓 UNBAN KOMUTU
     if (command === 'unban') {
         if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için `Üyeleri Yasakla` yetkin olmalı baba!');
+            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
         }
-        const userId = args[0];
+        const userId = args;
         if (!userId) return message.reply('❌ Yasağını kaldıracağım üyenin ID\'sini yazmadın reis!');
         try {
             const bannedUsers = await message.guild.bans.fetch();
-            if (!bannedUsers.has(userId)) return message.reply('❌ Belirttiğin ID\'ye sahip üye zaten banlı değil baba.');
+            if (!bannedUsers.has(userId)) return message.reply('❌ Belirttiğin ID zaten banlı değil baba.');
             await message.guild.members.unban(userId);
-            message.reply(`🔓 **<@${userId}>** idli üyenin yasağı başarıyla kaldırıldı!`);
-        } catch (err) { message.reply('❌ Yasak kaldırma esnasında bir hata oluştu.'); }
+            message.reply(`🔓 **<@${userId}>** idli üyenin yasağı kaldırıldı!`);
+        } catch (err) { message.reply('❌ Yasak kaldırma esnasında hata oluştu.'); }
     }
 
-    // 🔇 MUTE KOMUTU
     if (command === 'mute') {
         if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için `Üyeleri Zamanaşımına Uğrat` yetkin olmalı baba!');
+            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
         }
         let target = message.mentions.members.first();
         if (!target && message.reference) {
@@ -215,4 +181,31 @@ client.on('messageCreate', async (message) => {
         if (!target.moderatable) return message.reply('❌ Bu üyeyi susturmaya gücüm yetmiyor!');
         try {
             await target.timeout(10 * 60 * 1000, 'Komutla susturuldu.');
-message.reply(🔇 ${target} başarıyla 10 dakika boyunca susturuldu!);} catch (err) { message.reply('❌ Susturma esnasında sistemsel bir hata çıktı.'); }}// 🔊 UNMUTE KOMUTUif (command === 'unmute') {if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {return message.reply('❌ Bu komutu kullanmak için Üyeleri Zamanaşımına Uğrat yetkin olmalı baba!');}let target = message.mentions.members.first();if (!target && message.reference) {try {const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);if (repliedMsg.author.id === client.user.id) {target = repliedMsg.mentions.members.first();} else {target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);}} catch (e) { target = null; }}if (!target) return message.reply('❌ Kimin susturmasını kaldıracağımı seçmedin reis!');if (!target.communicationDisabledUntilTimestamp) return message.reply('❌ Bu üye zaten susturulmamış baba.');try {await target.timeout(null, 'Susturulması kaldırıldı.');message.reply(🔊 ${target} üyesinin susturulması kaldırıldı. Konuşabilir!);} catch (err) { message.reply('❌ Susturma kaldırma esnasında sistemsel bir hata çıktı.'); }}});client.login(BOT_TOKEN);
+            message.reply(`🔇 ${target} başarıyla 10 dakika boyunca susturuldu!`);
+        } catch (err) { message.reply('❌ Susturma esnasında hata çıktı.'); }
+    }
+
+    if (command === 'unmute') {
+        if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
+        }
+        let target = message.mentions.members.first();
+        if (!target && message.reference) {
+            try {
+                const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
+                if (repliedMsg.author.id === client.user.id) {
+                    target = repliedMsg.mentions.members.first();
+                } else {
+                    target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
+                }
+            } catch (e) { target = null; }
+        }
+        if (!target) return message.reply('❌ Kimin susturmasını kaldıracağımı seçmedin reis!');
+        if (!target.communicationDisabledUntilTimestamp) return message.reply('❌ Bu üye zaten susturulmamış baba.');
+        try {
+            await target.timeout(null, 'Susturulması kaldırıldı.');
+message.reply(🔊 ${target} üyesinin susturulması kaldırıldı. Konuşabilir!);
+        } catch (err) { message.reply('❌ Susturma kaldırma esnasında hata çıktı.'); }
+    }
+});
+client.login(BOT_TOKEN);
