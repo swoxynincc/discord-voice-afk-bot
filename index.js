@@ -1,5 +1,11 @@
 const { Client, GatewayIntentBits } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
+const express = require('express');
+
+// Render için basit web sunucusu (UptimeRobot'un 503 vermesini engeller)
+const app = express();
+app.get('/', (req, res) => res.send('THEKANADA AFK BOT IS ALIVE!'));
+app.listen(10000, () => console.log('Web sunucusu 10000 portunda aktif.'));
 
 const client = new Client({
     intents: [
@@ -8,9 +14,8 @@ const client = new Client({
     ]
 });
 
-// Şifreyi Render'ın içindeki gizli kasadan çekecek
 const BOT_TOKEN = process.env.DISCORD_TOKEN; 
-const SES_KANAL_ID = "1543153290823475211"; // Senin kilitli kanal ID'n
+const SES_KANAL_ID = "1543153290823475211"; 
 const SUNUCU_ID = "1540484134361636884";
 
 client.once('ready', () => {
