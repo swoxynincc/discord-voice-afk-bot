@@ -1,12 +1,11 @@
 const express = require('express');
 const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
-const fs = require('fs');
 
-// 1. ÖNCE WEB SUNUCUSUNU AÇIYORUZ
+// 1. WEB SUNUCUSU (Render Kapanma Önleyici)
 const app = express();
 const PORT = process.env.PORT || 10000;
-app.get('/', (req, res) => res.send('THEKANADA AFK BOT IS ALIVE WITH FULL MODERATION COMANDOS!'));
+app.get('/', (req, res) => res.send('THEKANADA AFK BOT IS ALIVE WITH MODERATION COMANDOS!'));
 app.listen(PORT, '0.0.0.0', () => console.log(`Web sunucusu ${PORT} portunda aktif.`));
 
 // 2. DISCORD BOT AYARLARI
@@ -23,19 +22,6 @@ const BOT_TOKEN = process.env.DISCORD_TOKEN;
 const SES_KANAL_ID = "1543153290823475211"; 
 const SUNUCU_ID = "1540484134361636884";
 const PREFIX = '!';
-
-// Uyarı sistemi hafıza dosyası ayarları
-let uyarilar = {};
-if (fs.existsSync('./uyarilar.json')) {
-    try {
-        uyarilar = JSON.parse(fs.readFileSync('./uyarilar.json', 'utf8'));
-    } catch (err) {
-        uyarilar = {};
-    }
-}
-function uyariKaydet() {
-    fs.writeFileSync('./uyarilar.json', JSON.stringify(uyarilar, null, 4));
-}
 
 client.once('ready', () => {
     console.log(`${client.user.tag} aktif! Sese bağlanılıyor...`);
@@ -60,31 +46,24 @@ client.on('messageCreate', async (message) => {
     const args = message.content.slice(PREFIX.length).trim().split(/ +/);
     const command = args.shift().toLowerCase();
 
-    // Hem Etiket Hem Reply Destekleyen Yardımcı Fonksiyon
-    async function getTargetMember() {
-        let target = message.mentions.members.first();
-        if (!target && message.reference) {
-            const repliedMsg = await message.channel.messages.fetch(message.reference.messageId).catch(() => null);
-            if (repliedMsg) {
-                target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
-            }
-        }
-        return target;
-    }
-
     // 🔨 BAN KOMUTU
     if (command === 'ban') {
         if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Yasakla` yetkin olmalı baba!');
         }
-        const target = await getTargetMember();
-        if (!target) return message.reply('❌ Kimi banlayacağımı etiketlemedin veya yanıtlamadın reis!');
-        if (!target.bannable) return message.reply('❌ Bu üyenin rolü benden üstte, onu uçuramam!');
-        const reason = args.join(' ') || 'Gerekçe belirtilmedi.';
+
+        const target = message.mentions.members.first();
+        if (!target) return message.reply('❌ Kimi banlayacağımı etiketlemedin reis! Örn: `!ban @üye sebep`');
+        if (!target.bannable) return message.reply('❌ Bu üye benden daha yüksek bir role sahip, onu uçuramam!');
+
+        const reason = args.slice(1).join(' ') || 'Gerekçe belirtilmedi.';
+        
         try {
             await target.ban({ reason: reason });
             message.reply(`🔨 **${target.user.tag}** sunucudan kalıcı olarak uçuruldu! \n**Gerekçe:** ${reason}`);
-        } catch (err) { message.reply('❌ Banlama esnasında sistemsel bir hata çıktı.'); }
+        } catch (err) {
+            message.reply('❌ Banlama esnasında sistemsel bir hata çıktı.');
+        }
     }
 
     // 🥾 KICK KOMUTU
@@ -92,29 +71,42 @@ client.on('messageCreate', async (message) => {
         if (!message.member.permissions.has(PermissionFlagsBits.KickMembers)) {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri At` yetkin olmalı baba!');
         }
-        const target = await getTargetMember();
-        if (!target) return message.reply('❌ Kimi sunucudan atacağımı etiketlemedin veya yanıtlamadın reis!');
+
+        const target = message.mentions.members.first();
+        if (!target) return message.reply('❌ Kimi sunucudan atacağımı etiketlemedin reis! Örn: `!kick @üye sebep`');
         if (!target.kickable) return message.reply('❌ Bu üyenin rolü benden üstte, o yüzden sunucudan atamam!');
-        const reason = args.join(' ') || 'Gerekçe belirtilmedi.';
+
+        const reason = args.slice(1).join(' ') || 'Gerekçe belirtilmedi.';
+
         try {
             await target.kick(reason);
             message.reply(`🥾 **${target.user.tag}** sunucudan tekmeleyerek atıldı! \n**Gerekçe:** ${reason}`);
-        } catch (err) { message.reply('❌ Atma esnasında sistemsel bir hata çıktı.'); }
+        } catch (err) {
+            message.reply('❌ Atma esnasında sistemsel bir hata çıktı.');
+        }
     }
 
-    // 🔓 UNBAN KOMUTU (ID İle)
+    // 🔓 UNBAN KOMUTU (ID ile)
     if (command === 'unban') {
         if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Yasakla` yetkin olmalı baba!');
         }
+
         const userId = args[0];
         if (!userId) return message.reply('❌ Yasağını kaldıracağım üyenin ID\'sini yazmadın reis! Örn: `!unban 123456789012345678`');
+
         try {
             const bannedUsers = await message.guild.bans.fetch();
-            if (!bannedUsers.has(userId)) return message.reply('❌ Belirttiğin ID\'ye sahip üye zaten banlı değil baba.');
+            const isBanned = bannedUsers.has(userId);
+
+            if (!isBanned) return message.reply('❌ Belirttiğin ID\'ye sahip üye zaten banlı değil baba.');
+
             await message.guild.members.unban(userId);
             message.reply(`🔓 **<@${userId}>** idli üyenin yasağı başarıyla kaldırıldı!`);
-        } catch (err) { message.reply('❌ Yasak kaldırma esnasında bir hata oluştu. ID\'nin doğruluğundan emin ol.'); }
+        } catch (err) {
+            console.error(err);
+            message.reply('❌ Yasak kaldırma esnasında bir hata oluştu. ID\'nin doğruluğundan emin ol.');
+        }
     }
 
     // 🔇 MUTE KOMUTU (Mention ve Reply Destekli)
@@ -122,13 +114,29 @@ client.on('messageCreate', async (message) => {
         if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Zamanaşımına Uğrat` yetkin olmalı baba!');
         }
-        const target = await getTargetMember();
-        if (!target) return message.reply('❌ Kimi susturacağımı etiketlemedin veya yanıtlamadın reis!');
+
+        let target = message.mentions.members.first();
+        if (!target && message.reference) {
+            try {
+                const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
+                target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
+            } catch (e) {
+                target = null;
+            }
+        }
+
+        if (!target) return message.reply('❌ Kimi susturacağımı etiketlemedin veya bir mesaja yanıt vermedin reis!');
         if (!target.moderatable) return message.reply('❌ Bu üyeyi susturmaya gücüm yetmiyor, rolü benden üstte!');
+
+        const duration = 10 * 60 * 1000; // 10 Dakika
+
         try {
-            await target.timeout(10 * 60 * 1000, 'Komutla susturuldu.');
+            await target.timeout(duration, 'Komutla susturuldu.');
             message.reply(`🔇 **${target.user.tag}** başarıyla 10 dakika boyunca susturuldu!`);
-        } catch (err) { message.reply('❌ Susturma esnasında sistemsel bir hata çıktı.'); }
+        } catch (err) {
+            console.error(err);
+            message.reply('❌ Susturma esnasında sistemsel bir hata çıktı.');
+        }
     }
 
     // 🔊 UNMUTE KOMUTU (Mention ve Reply Destekli)
@@ -136,76 +144,28 @@ client.on('messageCreate', async (message) => {
         if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
             return message.reply('❌ Bu komutu kullanmak için `Üyeleri Zamanaşımına Uğrat` yetkin olmalı baba!');
         }
-        const target = await getTargetMember();
-        if (!target) return message.reply('❌ Kimin susturmasını kaldıracağımı seçmedin reis!');
+
+        let target = message.mentions.members.first();
+        if (!target && message.reference) {
+            try {
+                const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
+                target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
+            } catch (e) {
+                target = null;
+            }
+        }
+
+        if (!target) return message.reply('❌ Kimin susturmasını kaldıracağımı etiketlemedin veya yanıt vermedin reis!');
         if (!target.communicationDisabledUntilTimestamp) return message.reply('❌ Bu üye zaten susturulmamış baba.');
+
         try {
             await target.timeout(null, 'Susturulması kaldırıldı.');
             message.reply(`🔊 **${target.user.tag}** üyesinin susturulması kaldırıldı. Konuşabilir!`);
-        } catch (err) { message.reply('❌ Susturma kaldırma esnasında sistemsel bir hata çıktı.'); }
-    }
-
-    // 🔒 JAIL (HAPİS) KOMUTU (Mention ve Reply Destekli)
-    if (command === 'jail') {
-        if (!message.member.permissions.has(PermissionFlagsBits.ManageRoles)) return message.reply('❌ Yetkin yok baba!');
-        const target = await getTargetMember();
-        if (!target) return message.reply('❌ Kimi karantinaya alacağımı seçmedin reis!');
-
-        let jailRole = message.guild.roles.cache.find(r => r.name === 'Jailed');
-        if (!jailRole) {
-            try {
-                jailRole = await message.guild.roles.create({
-                    name: 'Jailed',
-                    color: '#1a1a1a',
-                    reason: 'Jail sistemi için otomatik oluşturuldu.'
-                });
-                message.guild.channels.cache.forEach(async (channel) => {
-                    await channel.permissionOverwrites.edit(jailRole, {
-                        SendMessages: false,
-                        AddReactions: false,
-                        Connect: false
-                    }).catch(() => null);
-                });
-            } catch (err) { return message.reply('❌ Jail rolü oluşturulurken sistemsel hata çıktı.'); }
+        } catch (err) {
+            console.error(err);
+            message.reply('❌ Susturma kaldırma esnasında sistemsel bir hata çıktı.');
         }
-
-        if (target.roles.cache.has(jailRole.id)) return message.reply('❌ Bu üye zaten hücrede baba.');
-
-        try {
-            await target.roles.add(jailRole);
-            message.reply(`🔒 **${target.user.tag}** hücreye atıldı! Artık kanallara yazamaz.`);
-        } catch { message.reply('❌ Rol verme esnasında hata çıktı. Bot rolde üstte olmalı.'); }
     }
+});
 
-    // 🔓 UNJAIL KOMUTU (Mention ve Reply Destekli)
-    if (command === 'unjail') {
-        if (!message.member.permissions.has(PermissionFlagsBits.ManageRoles)) return message.reply('❌ Yetkin yok baba!');
-        const target = await getTargetMember();
-        if (!target) return message.reply('❌ Kimi hapisten çıkaracağımı seçmedin reis!');
-
-        let jailRole = message.guild.roles.cache.find(r => r.name === 'Jailed');
-        if (!jailRole || !target.roles.cache.has(jailRole.id)) return message.reply('❌ Bu üye zaten hapiste değil baba.');
-
-        try {
-            await target.roles.remove(jailRole);
-            message.reply(`🔓 **${target.user.tag}** hapisten çıkarıldı, özgürlüğüne kavuştu!`);
-        } catch { message.reply('❌ Rol geri alınırken hata çıktı.'); }
-    }
-
-    // ⚠️ WARN (UYARI) KOMUTU (Mention ve Reply Destekli)
-    if (command === 'warn') {
-        if (!message.member.permissions.has(PermissionFlagsBits.KickMembers)) return message.reply('❌ Yetkin yok baba!');
-        const target = await getTargetMember();
-        if (!target) return message.reply('❌ Kimi uyaracağımı seçmedin reis!');
-        if (target.user.bot) return message.reply('❌ Botları uyaramazsın reis.');
-
-        const reason = args.join(' ') || 'Sebep belirtilmedi.';
-        if (!uyarilar[target.id]) uyarilar[target.id] = [];
-        uyarilar[target.id].push({ reason, admin: message.author.tag, date: new Date().toLocaleDateString('tr-TR') });
-        uyariKaydet();
-
-        message.reply(`⚠️ **${target.user.tag}** başarıyla uyarıldı! Toplam Uyarı: **${uyarilar[target.id].length}**\n**Sebep:** ${reason}`);
-    }
-
-    // 📋 WARNINGS (UYARILARI LİSTELE) KOMUTU
-    if (command === 'warnings' || command === 'uyarılar') {
+client.login(BOT_TOKEN);
