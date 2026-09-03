@@ -1,9 +1,9 @@
 const express = require('express');
 const { Client, GatewayIntentBits, PermissionFlagsBits } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
-const fs = require('fs'); // Uyarıları hafızada tutmak için dosya sistemi
+const fs = require('fs');
 
-// 1. ÖNCE WEB SUNUCUSUNU AÇIYORUZ (Render'ın hatasını kesin çözer)
+// 1. ÖNCE WEB SUNUCUSUNU AÇIYORUZ
 const app = express();
 const PORT = process.env.PORT || 10000;
 app.get('/', (req, res) => res.send('THEKANADA AFK BOT IS ALIVE WITH FULL MODERATION COMANDOS!'));
@@ -114,7 +114,7 @@ client.on('messageCreate', async (message) => {
             if (!bannedUsers.has(userId)) return message.reply('❌ Belirttiğin ID\'ye sahip üye zaten banlı değil baba.');
             await message.guild.members.unban(userId);
             message.reply(`🔓 **<@${userId}>** idli üyenin yasağı başarıyla kaldırıldı!`);
-        } catch (err) { message.reply('❌ Yasak kaldırma esnasında bir hata oluştu. ID\'yi kontrol et.'); }
+        } catch (err) { message.reply('❌ Yasak kaldırma esnasında bir hata oluştu. ID\'nin doğruluğundan emin ol.'); }
     }
 
     // 🔇 MUTE KOMUTU (Mention ve Reply Destekli)
@@ -204,3 +204,8 @@ client.on('messageCreate', async (message) => {
         uyarilar[target.id].push({ reason, admin: message.author.tag, date: new Date().toLocaleDateString('tr-TR') });
         uyariKaydet();
 
+        message.reply(`⚠️ **${target.user.tag}** başarıyla uyarıldı! Toplam Uyarı: **${uyarilar[target.id].length}**\n**Sebep:** ${reason}`);
+    }
+
+    // 📋 WARNINGS (UYARILARI LİSTELE) KOMUTU
+    if (command === 'warnings' || command === 'uyarılar') {
