@@ -1,3 +1,4 @@
+
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
 const express = require('express');
@@ -82,7 +83,7 @@ client.on('messageCreate', async (message) => {
     const args = message.content.slice(1).trim().split(/ +/); const command = args.shift().toLowerCase();
 
     // ==========================================
-    // 📖 !HELP / !YARDIM KOMUTU (KANADA VE LOG ENTEGRELİ)
+    // 📖 !HELP / !YARDIM KOMUTU (%100 TEMİZ KANADA TASARIMI)
     // ==========================================
     if (command === 'help' || command === 'yardım') {
         const anaEmbed = new EmbedBuilder()
@@ -105,7 +106,7 @@ client.on('messageCreate', async (message) => {
                 { label: 'Yetkili', description: 'Yetkili yönetim komutları.', value: 'yetkili', emoji: '🔨' }
             ]);
 
-        // YENİ KANADA BUTONU (İstediğin web sitesine yönlendirir)
+        // SADECE KANADA BUTONU (Diğer yönlendirmeler silindi)
         const kanadaButon = new ButtonBuilder()
             .setLabel('Kanada')
             .setStyle(ButtonStyle.Link)
@@ -158,7 +159,7 @@ client.on('messageCreate', async (message) => {
             await hedef.timeout(sure * 60 * 1000); 
             logGonder(message.guild, "Susturma Cezası", `**${message.author.tag}** yetkilisi **${hedef.user.tag}** kullanıcısını **${sure} dakika** susturdu!`, '#95a5a6');
             return message.reply(`🔇 **${hedef.user.username}** ${sure} dk susturuldu.`); 
-        } catch(e) { return message.reply('❌ Yetkim yetmedi.'); }
+        } catch(e) { return message.reply('❌ Yetkim yetmiyor.'); }
     }
     if (command === 'uyarı' || command === 'uyar') {
         if (!message.member.permissions.has('KickMembers')) return message.reply('❌ Yetkin yok!');
@@ -171,44 +172,43 @@ client.on('messageCreate', async (message) => {
             uyarilar.set(hedef.id, 0);
             try { 
                 await hedef.timeout(15 * 60 * 1000); 
-logGonder(message.guild, "Otomatik Mute (3/3 Uyarı)", **${hedef.user.tag}** 3 uyarı sınırına ulaştığı için sistem tarafından otomatik **15 dk mute** yedi!, '#c0392b');
-return message.channel.send(🚨 **${hedef.user.username}** 3 uyarı nedeniyle otomatik **15 dk mute** yedi!);
+
+```
+
+Kodu dikkatli kullanın.
+
+svg
+
+logGonder(message.guild, "Otomatik Mute (3/3 Uyarı)", `**${hedef.user.tag}** 3 uyarı sınırına ulaştığı için sistem tarafından otomatik **15 dk mute** yedi!`, '#c0392b');
+return message.channel.send(`🚨 **${hedef.user.username}** 3 uyarı nedeniyle otomatik **15 dk mute** yedi!`);
 } catch (e) {}
 }
-return message.reply(⚠️ **${hedef.user.username}** uyarıldı. (**${currentUyar}/3**));
+return message.reply(`⚠️ **${hedef.user.username}** uyarıldı. (**${currentUyar}/3**)`);
 }
 });
-
-
 
 // --- MENÜ ETKİLEŞİM DİNLEYİCİSİ ---
 client.on('interactionCreate', async (interaction) => {
-if (!interaction.isStringSelectMenu() || interaction.customId !== 'yardim_menu') return;
+if (!interaction.isStringSelectMenu() || interaction.customId !== 'yardim\_menu') return;
 
-
-
-const secilen = interaction.values[0];
+const secilen = interaction.values[0]; // JavaScript dizisinden değeri çekiyoruz
 const embed = new EmbedBuilder().setColor('#ff0000').setAuthor({ name: 'THEKANADA Yardım Menüsü', iconURL: client.user.displayAvatarURL() });
 
-
-
-if (secilen === 'ana_menu') {
-embed.setDescription('🏡 Ana Menü\nKategori panosuna geri dön\n\n🐱 Eğlence\nEğlenceli ve keyifli komutlar\n\n👑 Kullanıcı\nProfil ve kullanıcı bilgileri\n\n🔨 Yetkili\nYetkili yönetim araçları');
+if (secilen === 'ana\_menu') {
+embed.setDescription('🏡 **Ana Menü**\nKategori panosuna geri dön\n\n🐱 **Eğlence**\nEğlenceli ve keyifli komutlar\n\n👑 **Kullanıcı**\nProfil ve kullanıcı bilgileri\n\n🔨 **Yetkili**\nYetkili yönetim araçları');
 } else if (secilen === 'eglence') {
-embed.setTitle('🐱 Eğlence Komutları Listesi').setDescription('!1vs1 @üye - Düello atarsınız.\n!adamasmaca - Kelime oyunu oynatır.\n!fast - Hızlı kelime yazma yarışı.\n!fakemesaj @üye <mesaj> - Sahte mesaj atar.\n!afk <sebep> - AFK moduna geçer.\n!ship @üye - Aşk testi yapar.');
+embed.setTitle('🐱 Eğlence Komutları Listesi').setDescription('`!1vs1 @üye` - Düello atarsınız.\n`!adamasmaca` - Kelime oyunu oynatır.\n`!fast` - Hızlı kelime yazma yarışı.\n`!fakemesaj @üye <mesaj>` - Sahte mesaj atar.\n`!afk <sebep>` - AFK moduna geçer.\n`!ship @üye` - Aşk testi yapar.');
 } else if (secilen === 'kullanici') {
-embed.setTitle('👑 Kullanıcı Komutları Listesi').setDescription('!rank - Güncel seviyenizi ve XP durumunuzu gösterir.\n!avatar [@üye] - Profil fotoğrafını büyütür.\n!sunucubilgi - Sunucu istatistiklerini gösterir.');
+embed.setTitle('👑 Kullanıcı Komutları Listesi').setDescription('`!rank` - Güncel seviyenizi ve XP durumunuzu gösterir.\n`!avatar [@üye]` - Profil fotoğrafını büyütür.\n`!sunucubilgi` - Sunucu istatistiklerini gösterir.');
 } else if (secilen === 'yetkili') {
-embed.setTitle('🔨 Yetkili Komutları Listesi').setDescription('!temizle <miktar> - Belirtilen miktarda mesajı siler.\n!sustur @üye <dakika> - Kullanıcıyı süreli mutelar.\n!uyarı @üye - Kullanıcıya ceza puanı ekler (3/3 olunca otomatik mute).');
+embed.setTitle('🔨 Yetkili Komutları Listesi').setDescription('`!temizle <miktar>` - Belirtilen miktarda mesajı siler.\n`!sustur @üye <dakika>` - Kullanıcıyı süreli mutelar.\n`!uyarı @üye` - Kullanıcıya ceza puanı ekler (3/3 olunca otomatik mute).');
 }
 
-
-
-// Seçim yapıldıkça hangi üyenin nereyi incelediğini de loga yazar kanka
-logGonder(interaction.guild, "Menü Kategorisi Değiştirildi", **${interaction.user.tag}** yardım menüsünde **${secilen.toUpperCase()}** sekmesine geçiş yaptı., '#1abc9c');
+logGonder(interaction.guild, "Menü Kategorisi Değiştirildi", `**${interaction.user.tag}** yardım menüsünde **${secilen.toUpperCase()}** sekmesine geçiş yaptı.`, '#1abc9c');
 await interaction.update({ embeds: [embed] });
 });
 
-
-
 client.login(process.env.TOKEN);
+
+```
+```
