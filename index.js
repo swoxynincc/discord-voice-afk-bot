@@ -1,211 +1,155 @@
-const express = require('express');
-const { Client, GatewayIntentBits, PermissionFlagsBits, EmbedBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
-
-const app = express();
-const PORT = process.env.PORT || 10000;
-app.get('/', (req, res) => { res.send('THEKANADA AFK BOT IS ALIVE WITH MODERATION COMANDOS!'); });
-app.listen(PORT, '0.0.0.0', () => { console.log('Web sunucusu aktif.'); });
+const express = require('express');
 
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildVoiceStates,
         GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-        GatewayIntentBits.GuildMembers
+        GatewayIntentBits.GuildVoiceStates,
+        GatewayIntentBits.MessageContent
     ]
 });
 
-const BOT_TOKEN = process.env.DISCORD_TOKEN; 
-const SES_KANAL_ID = "1543153290823475211"; 
-const SUNUCU_ID = "1540484134361636884";
-const PREFIX = '!';
-const HOS_GELDIN_KANAL_ID = "1543524294318096384"; 
-const SUSP_ROL_ID = "1545092036695429191"; 
+// --- BELLEKLER ---
+const levelXP = new Map(); const levelNum = new Map(); const uyarilar = new Map(); const afkKullanicilar = new Map(); 
+const aktifAdamAsmaca = new Map(); const aktifFastKelime = new Map(); 
+const fastKelimeHavuzu = ['kanada', 'vancouver', 'toronto', 'ottawa', 'ekonomi', 'dolar', 'akçaağaç', 'gurbet', 'yazılım', 'discord'];
 
-const afkMekanizmasi = new Map();
+// WEB SUNUCU
+const app = express(); app.get('/', (req, res) => res.send('TheKanada Guard/Eğlence Botu Aktif!')); app.listen(process.env.PORT || 3000);
 
-client.on('guildMemberAdd', async (member) => {
-    if (member.guild.id !== SUNUCU_ID) return;
-    try {
-        const kanal = await member.guild.channels.fetch(HOS_GELDIN_KANAL_ID).catch(() => null);
-        if (!kanal) return;
-
-        const kurulusMilisaniye = member.user.createdTimestamp;
-        const simdikiZaman = Date.now();
-        const besAyMilisaniye = 5 * 30.4 * 24 * 60 * 60 * 1000; 
-        const hesapYasiMilisaniye = simdikiZaman - kurulusMilisaniye;
-        const kurulusTarihi = new Date(kurulusMilisaniye).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' });
-        const discordZamanFormati = `<t:${Math.floor(kurulusMilisaniye / 1000)}:R>`;
-
-        const embed = new EmbedBuilder()
-            .setAuthor({ name: member.user.username, iconURL: member.user.displayAvatarURL({ dynamic: true }) })
-            .setDescription(`${member} has joined THEKANADA, I dont know who invited them.`)
-            .addFields({ name: '📅 Hesap Kuruluş Tarihi', value: `\`${kurulusTarihi}\` (${discordZamanFormati})`, inline: false })
-            .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-            .setTimestamp();
-
-        if (hesapYasiMilisaniye < besAyMilisaniye) {
-            embed.setTitle('🚨 Şüpheli Hesap Girişi!')
-                 .setColor('#ff0000') 
-                 .addFields({ name: '🛡️ Güvenlik Durumu', value: '❌ **Tehlikeli Üye!** (Hesap 5 aydan daha yeni)', inline: false });
-            await member.roles.add(SUSP_ROL_ID).catch(() => null);
-        } else {
-            embed.setTitle('✅ Yeni Üye Katıldı!')
-                 .setColor('#00ff00') 
-                 .addFields({ name: '🛡️ Güvenlik Durumu', value: '🛡️ **Güvenilir Üye** (Hesap 5 aydan daha eski)', inline: false });
-        }
-        await kanal.send({ embeds: [embed] }).catch(() => null);
-    } catch (error) {
-        console.error(error);
-    }
-});
-
-client.once('ready', () => {
-    console.log(`${client.user.tag} aktif! Sese bağlanılıyor...`);
-    try {
-        joinVoiceChannel({
-            channelId: SES_KANAL_ID,
-            guildId: SUNUCU_ID,
-            adapterCreator: client.guilds.cache.get(SUNUCU_ID).voiceAdapterCreator,
-            selfDeaf: true,
-            selfMute: false
-        });
-        console.log("Ses kanalına başarıyla Giriş Yaptı!");
-    } catch (error) {
-        console.error("Hata çıktı:", error);
-    }
+client.on('ready', () => {
+    console.log(`${client.user.tag} ErensiBOT Yardım Menüsüyle Aktif!`);
+    const channelId = '1543153290823475211'; const guildId = '1540484134361636884';   
+    const connectToVoice = () => { try { joinVoiceChannel({ channelId, guildId, adapterCreator: client.guilds.cache.get(guildId).voiceAdapterCreator, selfDeaf: true, selfMute: true }); } catch (e) {} };
+    connectToVoice(); setInterval(connectToVoice, 15 * 60 * 1000);
 });
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
+    const userId = message.author.id;
 
-    if (afkMekanizmasi.has(message.author.id)) {
-        afkMekanizmasi.delete(message.author.id);
-        message.reply('AFK Durumunu Sildim Reis!').then(msg => {
-            setTimeout(() => msg.delete().catch(() => null), 5000);
-        }).catch(() => null);
-        return;
+    // AFK Kontrol
+    if (afkKullanicilar.has(userId)) { afkKullanicilar.delete(userId); message.reply(`👋 Hoş geldin! AFK durumunu temizledim.`); }
+    message.mentions.users.forEach((user) => { if (afkKullanicilar.has(user.id)) message.reply(`💤 **${user.username}** şu an AFK! Sebep: \`${afkKullanicilar.get(user.id)}\``); });
+
+    // Seviye Sistemi
+    if (!message.content.startsWith('!')) {
+        let xp = (levelXP.get(userId) || 0) + Math.floor(Math.random() * 5) + 3; levelXP.set(userId, xp);
+        let lvl = levelNum.get(userId) || 1;
+        if (xp >= lvl * 100) { levelNum.set(userId, lvl + 1); levelXP.set(userId, 0); message.channel.send(`🎉 **${message.author.username}** Seviye atladın! Yeni Seviyen: **${lvl + 1}** 🚀`); }
     }
 
-    if (message.mentions.members.size > 0) {
-        message.mentions.members.forEach((mentionMember) => {
-            if (afkMekanizmasi.has(mentionMember.id)) {
-                const afkBilgisi = afkMekanizmasi.get(mentionMember.id);
-                message.reply(`⚠️ **${mentionMember.user.username}** Şuandan itibaren **${afkBilgisi.sebep}** ile AFK!`).catch(() => null);
-            }
-        });
+    // Kelime Yarışı Dinleyici
+    if (aktifFastKelime.has(message.channel.id) && message.content.toLowerCase() === aktifFastKelime.get(message.channel.id)) {
+        aktifFastKelime.delete(message.channel.id); return message.reply(`🏁 **TEBRİKLER!** Kelimeyi ilk sen yazdın kanka! 🏆`);
     }
 
-    const mesajIcerik = message.content.toLowerCase().trim();
-    const selamlar = ['sa', 'saü', 'selamun aleykum', 'selamın aleyküm', 'selamün aleyküm'];
-    if (selamlar.includes(mesajIcerik)) {
-        return message.reply('Aleykum selam durum cekip bizden olabilirsin');
-    }
+    // Komut Ayırma
+    if (!message.content.startsWith('!')) return;
+    const args = message.content.slice(1).trim().split(/ +/); const command = args.shift().toLowerCase();
 
-    if (!message.content.startsWith(PREFIX)) return;
-
-    const args = message.content.slice(PREFIX.length).trim().split(/ +/);
-    const command = args.shift().toLowerCase();
-
-    if (command === 'afk') {
-        const sebep = args.join(' ') || 'Sebep belirtilmedi';
-        afkMekanizmasi.set(message.author.id, { sebep: sebep, zaman: Date.now() });
-        return message.reply(`💤 Başarıyla AFK moduna geçtin reis. Gerekçe: **${sebep}**`);
-    }
-
+    // ==========================================
+    // 📖 !HELP / !YARDIM KOMUTU (GÖRSELDEKİ BİREBİR TASARIM)
+    // ==========================================
     if (command === 'help' || command === 'yardım') {
-        const helpText = `📜 **THEKANADA BOT - TÜM KOMUTLAR**\n\n💤 **${PREFIX}afk [sebep]**\n└ Sizi AFK moduna alır.\n\n🔨 **${PREFIX}ban <@üye>**\n└ Üyeyi kalıcı yasaklar.\n\n🥾 **${PREFIX}kick <@üye>**\n└ Üyeyi sunucudan atar.\n\n🔓 **${PREFIX}unban <ID>**\n└ Üyenin banını kaldırır.\n\n🔇 **${PREFIX}mute <@üye>**\n└ Üyeyi 10 dakika susturur (Reply/Mention).\n\n🔊 **${PREFIX}unmute <@üye>**\n└ Susturmayı kaldırır (Reply/Mention).`;
-        return message.reply(helpText);
+        const anaEmbed = new EmbedBuilder()
+            .setColor('#1a1a1c')
+            .setAuthor({ name: 'ErensiBOT Yardım Menüsü', iconURL: client.user.displayAvatarURL() })
+            .setDescription(
+                '🏡 **Ana Menü**\nKategori panosuna geri dön\n\n' +
+                '🐱 **Eğlence**\nEğlenceli ve keyifli komutlar\n\n' +
+                '👑 **Kullanıcı**\nProfil ve kullanıcı bilgileri\n\n' +
+                '🎉 **Çekiliş**\nÇekiliş oluştur ve yönet.\n\n' +
+                '🔨 **Yetkili**\nYetkili yönetim araçları'
+            );
+
+        // Seçim Menüsü (Select Menu)
+        const menu = new StringSelectMenuBuilder()
+            .setCustomId('yardim_menu')
+            .setPlaceholder('📋 Bir kategori seçin...')
+            .addOptions([
+                { label: 'Ana Menü', description: 'Giriş sayfasına döner.', value: 'ana_menu', emoji: '🏡' },
+                { label: 'Eğlence', description: 'Eğlence ve oyun komutları.', value: 'eglence', emoji: '🐱' },
+                { label: 'Kullanıcı', description: 'Profil ve kullanıcı bilgileri.', value: 'kullanici', emoji: '👑' },
+                { label: 'Yetkili', description: 'Yetkili yönetim komutları.', value: 'yetkili', emoji: '🔨' }
+            ]);
+
+        // Alt Butonlar (Görselin en altındaki buton linkleri)
+        const b1 = new ButtonBuilder().setLabel('Yönetim Paneli').setStyle(ButtonStyle.Link).setURL('https://eren.si').setEmoji('🌐');
+        const b2 = new ButtonBuilder().setLabel('Komutlar').setStyle(ButtonStyle.Link).setURL('https://eren.si').setEmoji('📖');
+        const b3 = new ButtonBuilder().setLabel('Reklam Ver').setStyle(ButtonStyle.Link).setURL('https://eren.si').setEmoji('📢');
+
+        const rowMenu = new ActionRowBuilder().addComponents(menu);
+        const rowButtons = new ActionRowBuilder().addComponents(b1, b2, b3);
+
+        return message.reply({ embeds: [anaEmbed], components: [rowMenu, rowButtons] });
     }
 
-    if (command === 'ban') {
-        if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
-        }
-        const target = message.mentions.members.first();
-        if (!target) return message.reply('❌ Kimi banlayacağımı etiketlemedin reis!');
-        if (!target.bannable) return message.reply('❌ Bu üyenin rolü benden üstte!');
-        const reason = args.slice(1).join(' ') || 'Gerekçe belirtilmedi.';
-        try {
-            await target.ban({ reason: reason });
-            message.reply(`🔨 **${target.user.tag}** sunucudan uçuruldu! \n**Gerekçe:** ${reason}`);
-        } catch (err) { message.reply('❌ Banlama esnasında hata çıktı.'); }
+    // --- DİĞER ERENSIBOT EĞLENCE & MODERASYON KOMUTLARI ---
+    if (command === '1vs1' || command === 'düello') {
+        const hedef = message.mentions.users.first(); if (!hedef || hedef.id === userId) return message.reply('⚠️ Bir üye etiketle!');
+        return message.channel.send(`⚔️ **DÜELLO BAŞLADI!**\n👑 Kazanan: **${Math.random() < 0.5 ? message.author.username : hedef.username}**!`);
     }
-
-    if (command === 'kick') {
-        if (!message.member.permissions.has(PermissionFlagsBits.KickMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
-        }
-        const target = message.mentions.members.first();
-        if (!target) return message.reply('❌ Kimi sunucudan atacağımı etiketlemedin reis!');
-        if (!target.kickable) return message.reply('❌ Bu üyenin rolü benden üstte!');
-        const reason = args.slice(1).join(' ') || 'Gerekçe belirtilmedi.';
-        try {
-            await target.kick(reason);
-            message.reply(`🥾 **${target.user.tag}** sunucudan atıldı! \n**Gerekçe:** ${reason}`);
-        } catch (err) { message.reply('❌ Atma esnasında hata çıktı.'); }
+    if (command === 'adamasmaca') {
+        if (aktifAdamAsmaca.has(message.channel.id)) return message.reply('⚠️ Zaten aktif oyun var.');
+        aktifAdamAsmaca.set(message.channel.id, { kelime: 'kanada', harfler: ['k','a','n','a','d','a'], tahminEdilenler: [], hak: 6 });
+        return message.reply(`🎮 **Adam Asmaca Başladı!** Harf girin.\nKelime: \`_ _ _ _ _ _\` (6 Hak)`);
     }
-
-    if (command === 'unban') {
-        if (!message.member.permissions.has(PermissionFlagsBits.BanMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
-        }
-        const userId = args;
-        if (!userId) return message.reply('❌ Yasağını kaldıracağım üyenin ID\'sini yazmadın reis!');
-        try {
-            const bannedUsers = await message.guild.bans.fetch();
-            if (!bannedUsers.has(userId)) return message.reply('❌ Belirttiğin ID zaten banlı değil baba.');
-            await message.guild.members.unban(userId);
-            message.reply(`🔓 **<@${userId}>** idli üyenin yasağı kaldırıldı!`);
-        } catch (err) { message.reply('❌ Yasak kaldırma esnasında hata oluştu.'); }
+    if (command === 'fast') {
+        const kelime = fastKelimeHavuzu[Math.floor(Math.random() * fastKelimeHavuzu.length)]; aktifFastKelime.set(message.channel.id, kelime);
+        return message.channel.send(`🏁 **HIZLI YAZMA YARIŞI!** İlk yazan kazanır:\n👉 **\`${kelime}\`**`);
     }
-
-    if (command === 'mute') {
-        if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
-        }
-        let target = message.mentions.members.first();
-        if (!target && message.reference) {
-            try {
-                const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
-                if (repliedMsg.author.id === client.user.id) {
-                    target = repliedMsg.mentions.members.first();
-                } else {
-                    target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
-                }
-            } catch (e) { target = null; }
-        }
-        if (!target) return message.reply('❌ Kimi susturacağımı seçmedin reis!');
-        if (!target.moderatable) return message.reply('❌ Bu üyeyi susturmaya gücüm yetmiyor!');
-        try {
-            await target.timeout(10 * 60 * 1000, 'Komutla susturuldu.');
-            message.reply(`🔇 ${target} başarıyla 10 dakika boyunca susturuldu!`);
-        } catch (err) { message.reply('❌ Susturma esnasında hata çıktı.'); }
+    if (command === 'fakemesaj') {
+        const hedef = message.mentions.users.first(); const yazi = args.join(' ').replace(`<@!${hedef?.id}>`, '').trim();
+        if (!hedef || !yazi) return message.reply('⚠️ Kullanım: `!fakemesaj @üye mesaj`');
+        try { await message.delete(); const wh = await message.channel.createWebhook({ name: hedef.username, avatar: hedef.displayAvatarURL() }); await wh.send(yazi); await wh.delete(); } catch(e) {}
     }
-
-    if (command === 'unmute') {
-        if (!message.member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            return message.reply('❌ Bu komutu kullanmak için yetkin olmalı baba!');
-        }
-        let target = message.mentions.members.first();
-        if (!target && message.reference) {
-            try {
-                const repliedMsg = await message.channel.messages.fetch(message.reference.messageId);
-                if (repliedMsg.author.id === client.user.id) {
-                    target = repliedMsg.mentions.members.first();
-                } else {
-                    target = await message.guild.members.fetch(repliedMsg.author.id).catch(() => null);
-                }
-            } catch (e) { target = null; }
-        }
-        if (!target) return message.reply('❌ Kimin susturmasını kaldıracağımı seçmedin reis!');
-        if (!target.communicationDisabledUntilTimestamp) return message.reply('❌ Bu üye zaten susturulmamış baba.');
-        try {
-            await target.timeout(null, 'Susturulması kaldırıldı.');
-message.reply(🔊 ${target} üyesinin susturulması kaldırıldı. Konuşabilir!);
-        } catch (err) { message.reply('❌ Susturma kaldırma esnasında hata çıktı.'); }
+    if (command === 'afk') { afkKullanicilar.set(userId, args.join(' ') || 'Uzakta.'); return message.reply(`💤 AFK moduna geçtin.`); }
+    if (command === 'ship') { return message.reply(`❤️ Aşk uyumu: **%${Math.floor(Math.random() * 100) + 1}**`); }
+    if (command === 'rank') { return message.reply(`📊 Seviye: **${levelNum.get(userId) || 1}** | XP: **${levelXP.get(userId) || 0}**`); }
+    if (command === 'avatar') { return message.reply((message.mentions.users.first() || message.author).displayAvatarURL({ size: 1024 })); }
+    
+    if (command === 'temizle') {
+        if (!message.member.permissions.has('ManageMessages')) return message.reply('❌ Yetkin yok!');
+        const miktar = parseInt(args[0]); if (!miktar || miktar < 1 || miktar > 100) return message.reply('⚠️ 1-100 arası sayı gir.');
+        await message.channel.bulkDelete(miktar, true); const s = await message.channel.send(`🧹 **${miktar}** mesaj silindi.`); setTimeout(() => s.delete().catch(() => {}), 3000);
+    }
+    if (command === 'sustur' || command === 'mute') {
+        if (!message.member.permissions.has('MuteMembers')) return message.reply('❌ Yetkin yok!');
+        const hedef = message.guild.members.cache.get(message.mentions.users.first()?.id); const sure = parseInt(args[1]);
+        if (!hedef || !sure) return message.reply('⚠️ Kullanım: `!sustur @üye <dakika>`');
+        try { await hedef.timeout(sure * 60 * 1000); return message.reply(`🔇 **${hedef.user.username}** ${sure} dk susturuldu.`); } catch(e) { return message.reply('❌ Yetkim yetmedi.'); }
     }
 });
-client.login(BOT_TOKEN);
+
+// ==========================================
+// 🎛️ SEÇİM MENÜSÜ ETKİLEŞİM DİNLEYİCİSİ (DİNAMİK MENÜ)
+// ==========================================
+client.on('interactionCreate', async (interaction) => {
+    if (!interaction.isStringSelectMenu() || interaction.customId !== 'yardim_menu') return;
+
+    const secilen = interaction.values[0];
+    const embed = new EmbedBuilder().setColor('#1a1a1c').setAuthor({ name: 'ErensiBOT Yardım Menüsü', iconURL: client.user.displayAvatarURL() });
+
+    if (secilen === 'ana_menu') {
+        embed.setDescription(
+            '🏡 **Ana Menü**\nKategori panosuna geri dön\n\n🐱 **Eğlence**\nEğlenceli ve keyifli komutlar\n\n👑 **Kullanıcı**\nProfil ve kullanıcı bilgileri\n\n🎉 **Çekiliş**\nÇekiliş oluştur ve yönet.\n\n🔨 **Yetkili**\nYetkili yönetim araçları'
+        );
+    } else if (secilen === 'eglence') {
+        embed.setTitle('🐱 Eğlence Komutları Listesi')
+             .setDescription('`!1vs1 @üye` - Düello atarsınız.\n`!adamasmaca` - Kelime oyunu oynatır.\n`!fast` - Hızlı kelime yazma yarışı.\n`!fakemesaj @üye <mesaj>` - Sahte mesaj atar.\n`!afk <sebep>` - AFK moduna geçer.\n`!ship @üye` - Aşk testi yapar.');
+    } else if (secilen === 'kullanici') {
+        embed.setTitle('👑 Kullanıcı Komutları Listesi')
+             .setDescription('`!rank` - Güncel seviyenizi ve XP durumunuzu gösterir.\n`!avatar [@üye]` - Profil fotoğrafını büyütür.\n`!sunucubilgi` - Sunucu istatistiklerini gösterir.');
+    } else if (secilen === 'yetkili') {
+        embed.setTitle('🔨 Yetkili Komutları Listesi')
+             .setDescription('`!temizle <miktar>` - Belirtilen miktarda mesajı siler.\n`!sustur @üye <dakika>` - Kullanıcıyı süreli mutelar.\n`!uyarı @üye` - Kullanıcıya ceza puanı ekler (3/3 olunca otomatik mute).');
+    }
+
+    // Mesajı güncelle (Yeniden mesaj atmadan direkt üstüne yazar)
+    await interaction.update({ embeds: [embed] });
+});
+
+client.login(process.env.TOKEN);
