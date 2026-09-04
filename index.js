@@ -25,8 +25,12 @@ app.listen(PORT, () => { console.log("Web sunucusu basariyla baslatildi."); });
 client.on('ready', () => {
     console.log("THEKANADA Botu basariyla sese baglaniyor...");
     
+    // --- 🎮 SADECE DEVELOPED BY SWOXYN OYNUYOR AYARLANDI ---
     client.user.setPresence({
-        activities: [{ name: 'Developed By Swoxyn', type: ActivityType.Custom }],
+        activities: [{ 
+            name: 'Developed By Swoxyn', 
+            type: ActivityType.Playing 
+        }],
         status: 'online',
     });
 
@@ -78,7 +82,7 @@ client.on('messageCreate', async (message) => {
             .setPlaceholder('📋 Bir kategori seçin...')
             .addOptions([
                 { label: 'Ana Menü', description: 'Giriş sayfasına döner.', value: 'ana_menu', emoji: '🏡' },
-                { label: 'Eğlence', description: 'Eğlence ve oyun komutları.', value: 'eglence', emoji: '🐱' },
+                { label: 'Eğlence', description: 'Eğlence og oyun komutları.', value: 'eglence', emoji: '🐱' },
                 { label: 'Kullanıcı', description: 'Profil ve kullanıcı bilgileri.', value: 'kullanici', emoji: '👑' },
                 { label: 'Yetkili', description: 'Yetkili yönetim komutları.', value: 'yetkili', emoji: '🔨' }
             ]);
@@ -146,7 +150,7 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isStringSelectMenu() || interaction.customId !== 'yardim_menu') return;
 
-    const secilen = String(interaction.values[0]); 
+    const secilen = String(interaction.values); 
     const embed = new EmbedBuilder().setColor('#ff0000').setAuthor({ name: 'THEKANADA Yardım Menüsü', iconURL: client.user.displayAvatarURL() });
 
     if (secilen === 'ana_menu') {
@@ -159,7 +163,3 @@ client.on('interactionCreate', async (interaction) => {
         embed.setTitle('🔨 Yetkili Komutları Listesi').setDescription('`!temizle <miktar>` - Belirtilen miktarda mesajı siler.\n`!sustur @üye <dakika>` - Kullanıcıyı süreli mutelar.\n`!uyarı @üye` - Kullanıcıya ceza puanı ekler (3/3 olunca otomatik mute).');
     }
 
-    await interaction.update({ embeds: [embed] });
-});
-
-client.login(process.env.TOKEN);
