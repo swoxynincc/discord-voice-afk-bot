@@ -16,34 +16,65 @@ const levelXP = new Map(); const levelNum = new Map(); const uyarilar = new Map(
 const aktifAdamAsmaca = new Map(); const aktifFastKelime = new Map(); 
 const fastKelimeHavuzu = ['kanada', 'vancouver', 'toronto', 'ottawa', 'ekonomi', 'dolar', 'akçaağaç', 'gurbet', 'yazılım', 'discord'];
 
+// LOG KANALI ID'Sİ
+const logKanaliId = '1545048504421064736';
+
 // WEB SUNUCU
-const app = express(); app.get('/', (req, res) => res.send('TheKanada Guard/Eğlence Botu Aktif!')); app.listen(process.env.PORT || 3000);
+const app = express(); app.get('/', (req, res) => res.send('TheKanada Guard Bot Aktif!')); app.listen(process.env.PORT || 3000);
 
 client.on('ready', () => {
-    console.log(`${client.user.tag} ErensiBOT Yardım Menüsüyle Aktif!`);
+    console.log(`${client.user.tag} Kanada Temalı Menü ve Log Sistemiyle Aktif!`);
     const channelId = '1543153290823475211'; const guildId = '1540484134361636884';   
     const connectToVoice = () => { try { joinVoiceChannel({ channelId, guildId, adapterCreator: client.guilds.cache.get(guildId).voiceAdapterCreator, selfDeaf: true, selfMute: true }); } catch (e) {} };
     connectToVoice(); setInterval(connectToVoice, 15 * 60 * 1000);
 });
 
+// Gelişmiş Log Gönderme Fonksiyonu
+async function logGonder(guild, baslik, aciklama, renk = '#ff0000') {
+    try {
+        const kanal = await guild.channels.fetch(logKanaliId);
+        if (kanal) {
+            const logEmbed = new EmbedBuilder()
+                .setColor(renk)
+                .setTitle(`📝 KANADA LOG | ${baslik}`)
+                .setDescription(aciklama)
+                .setTimestamp();
+            await kanal.send({ embeds: [logEmbed] });
+        }
+    } catch (e) { console.error("Log kanalına mesaj gönderilemedi:", e); }
+}
+
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     const userId = message.author.id;
 
-    // AFK Kontrol
-    if (afkKullanicilar.has(userId)) { afkKullanicilar.delete(userId); message.reply(`👋 Hoş geldin! AFK durumunu temizledim.`); }
-    message.mentions.users.forEach((user) => { if (afkKullanicilar.has(user.id)) message.reply(`💤 **${user.username}** şu an AFK! Sebep: \`${afkKullanicilar.get(user.id)}\``); });
+    // AFK Kontrol ve Loglama
+    if (afkKullanicilar.has(userId)) { 
+        afkKullanicilar.delete(userId); 
+        message.reply(`👋 Hoş geldin! AFK durumunu temizledim.`); 
+        logGonder(message.guild, "AFK İptal", `**${message.author.tag}** chate yazarak AFK modundan çıktı.`, '#00ff00');
+    }
+    message.mentions.users.forEach((user) => { 
+        if (afkKullanicilar.has(user.id)) message.reply(`💤 **${user.username}** şu an AFK! Sebep: \`${afkKullanicilar.get(user.id)}\``); 
+    });
 
     // Seviye Sistemi
     if (!message.content.startsWith('!')) {
         let xp = (levelXP.get(userId) || 0) + Math.floor(Math.random() * 5) + 3; levelXP.set(userId, xp);
         let lvl = levelNum.get(userId) || 1;
-        if (xp >= lvl * 100) { levelNum.set(userId, lvl + 1); levelXP.set(userId, 0); message.channel.send(`🎉 **${message.author.username}** Seviye atladın! Yeni Seviyen: **${lvl + 1}** 🚀`); }
+        if (xp >= lvl * 100) { 
+            levelNum.set(userId, lvl + 1); levelXP.set(userId, 0); 
+            message.channel.send(`🎉 **${message.author.username}** Seviye atladın! Yeni Seviyen: **${lvl + 1}** 🚀`); 
+            logGonder(message.guild, "Seviye Atlama", `**${message.author.tag}** konuşarak **Seviye ${lvl + 1}** oldu!`, '#ffff00');
+        }
     }
 
-    // Kelime Yarışı Dinleyici
+    // Kelime Yarışı Dinleyici ve Loglama
     if (aktifFastKelime.has(message.channel.id) && message.content.toLowerCase() === aktifFastKelime.get(message.channel.id)) {
-        aktifFastKelime.delete(message.channel.id); return message.reply(`🏁 **TEBRİKLER!** Kelimeyi ilk sen yazdın kanka! 🏆`);
+        aktifFastKelime.delete(message.channel.id); 
+        message.reply(`🏁 **TEBRİKLER!** Kelimeyi ilk sen yazdın kanka! 🏆`);
+        logGonder(message.guild, "Kelime Yarışı Kazanıldı", `**${message.author.tag}**, kelime yarışmasını kelimeyi ilk yazarak kazandı.`, '#00ff00');
+        return;
     }
 
     // Komut Ayırma
@@ -51,21 +82,19 @@ client.on('messageCreate', async (message) => {
     const args = message.content.slice(1).trim().split(/ +/); const command = args.shift().toLowerCase();
 
     // ==========================================
-    // 📖 !HELP / !YARDIM KOMUTU (GÖRSELDEKİ BİREBİR TASARIM)
+    // 📖 !HELP / !YARDIM KOMUTU (KANADA VE LOG ENTEGRELİ)
     // ==========================================
     if (command === 'help' || command === 'yardım') {
         const anaEmbed = new EmbedBuilder()
-            .setColor('#1a1a1c')
-            .setAuthor({ name: 'ErensiBOT Yardım Menüsü', iconURL: client.user.displayAvatarURL() })
+            .setColor('#ff0000')
+            .setAuthor({ name: 'THEKANADA Yardım Menüsü', iconURL: client.user.displayAvatarURL() })
             .setDescription(
                 '🏡 **Ana Menü**\nKategori panosuna geri dön\n\n' +
                 '🐱 **Eğlence**\nEğlenceli ve keyifli komutlar\n\n' +
                 '👑 **Kullanıcı**\nProfil ve kullanıcı bilgileri\n\n' +
-                '🎉 **Çekiliş**\nÇekiliş oluştur ve yönet.\n\n' +
                 '🔨 **Yetkili**\nYetkili yönetim araçları'
             );
 
-        // Seçim Menüsü (Select Menu)
         const menu = new StringSelectMenuBuilder()
             .setCustomId('yardim_menu')
             .setPlaceholder('📋 Bir kategori seçin...')
@@ -76,80 +105,110 @@ client.on('messageCreate', async (message) => {
                 { label: 'Yetkili', description: 'Yetkili yönetim komutları.', value: 'yetkili', emoji: '🔨' }
             ]);
 
-        // Alt Butonlar (Görselin en altındaki buton linkleri)
-        const b1 = new ButtonBuilder().setLabel('Yönetim Paneli').setStyle(ButtonStyle.Link).setURL('https://eren.si').setEmoji('🌐');
-        const b2 = new ButtonBuilder().setLabel('Komutlar').setStyle(ButtonStyle.Link).setURL('https://eren.si').setEmoji('📖');
-        const b3 = new ButtonBuilder().setLabel('Reklam Ver').setStyle(ButtonStyle.Link).setURL('https://eren.si').setEmoji('📢');
+        // YENİ KANADA BUTONU (İstediğin web sitesine yönlendirir)
+        const kanadaButon = new ButtonBuilder()
+            .setLabel('Kanada')
+            .setStyle(ButtonStyle.Link)
+            .setURL('https://thekanada.vercel.app')
+            .setEmoji('🍁');
 
         const rowMenu = new ActionRowBuilder().addComponents(menu);
-        const rowButtons = new ActionRowBuilder().addComponents(b1, b2, b3);
+        const rowButtons = new ActionRowBuilder().addComponents(kanadaButon);
 
+        logGonder(message.guild, "Yardım Menüsü Açıldı", `**${message.author.tag}** isimli üye chate \`!help\` yazarak yardım menüsünü çağırdı.`, '#3498db');
         return message.reply({ embeds: [anaEmbed], components: [rowMenu, rowButtons] });
     }
 
-    // --- DİĞER ERENSIBOT EĞLENCE & MODERASYON KOMUTLARI ---
+    // --- DİĞER MODERASYON KOMUTLARI & LOGLARI ---
     if (command === '1vs1' || command === 'düello') {
         const hedef = message.mentions.users.first(); if (!hedef || hedef.id === userId) return message.reply('⚠️ Bir üye etiketle!');
-        return message.channel.send(`⚔️ **DÜELLO BAŞLADI!**\n👑 Kazanan: **${Math.random() < 0.5 ? message.author.username : hedef.username}**!`);
+        const kazanan = Math.random() < 0.5 ? message.author.username : hedef.username;
+        logGonder(message.guild, "Düello Atıldı", `**${message.author.tag}** ile **${hedef.tag}** düello attı. Kazanan: **${kazanan}**`);
+        return message.channel.send(`⚔️ **DÜELLO BAŞLADI!**\n👑 Kazanan: **${kazanan}**!`);
     }
     if (command === 'adamasmaca') {
         if (aktifAdamAsmaca.has(message.channel.id)) return message.reply('⚠️ Zaten aktif oyun var.');
         aktifAdamAsmaca.set(message.channel.id, { kelime: 'kanada', harfler: ['k','a','n','a','d','a'], tahminEdilenler: [], hak: 6 });
-        return message.reply(`🎮 **Adam Asmaca Başladı!** Harf girin.\nKelime: \`_ _ _ _ _ _\` (6 Hak)`);
+        logGonder(message.guild, "Oyun Başladı", `**${message.author.tag}** tarafından Adam Asmaca oyunu başlatıldı.`);
+        return message.reply('🎮 **Adam Asmaca Başladı!** Kelime: \`_ _ _ _ _ _\` (6 Hak)');
     }
     if (command === 'fast') {
         const kelime = fastKelimeHavuzu[Math.floor(Math.random() * fastKelimeHavuzu.length)]; aktifFastKelime.set(message.channel.id, kelime);
-        return message.channel.send(`🏁 **HIZLI YAZMA YARIŞI!** İlk yazan kazanır:\n👉 **\`${kelime}\`**`);
+        logGonder(message.guild, "Kelime Yarışı Başladı", `**${message.author.tag}** tarafından kelime yarışı tetiklendi.`);
+        return message.channel.send(`🏁 **HIZLI YAZMA YARIŞI!**:\n👉 **\`${kelime}\`**`);
     }
-    if (command === 'fakemesaj') {
-        const hedef = message.mentions.users.first(); const yazi = args.join(' ').replace(`<@!${hedef?.id}>`, '').trim();
-        if (!hedef || !yazi) return message.reply('⚠️ Kullanım: `!fakemesaj @üye mesaj`');
-        try { await message.delete(); const wh = await message.channel.createWebhook({ name: hedef.username, avatar: hedef.displayAvatarURL() }); await wh.send(yazi); await wh.delete(); } catch(e) {}
+    if (command === 'afk') { 
+        const sebep = args.join(' ') || 'Uzakta.'; afkKullanicilar.set(userId, sebep); 
+        logGonder(message.guild, "AFK Modu", `**${message.author.tag}** şu sebeple AFK oldu: \`${sebep}\``, '#95a5a6');
+        return message.reply(`💤 AFK moduna geçtin.`); 
     }
-    if (command === 'afk') { afkKullanicilar.set(userId, args.join(' ') || 'Uzakta.'); return message.reply(`💤 AFK moduna geçtin.`); }
-    if (command === 'ship') { return message.reply(`❤️ Aşk uyumu: **%${Math.floor(Math.random() * 100) + 1}**`); }
-    if (command === 'rank') { return message.reply(`📊 Seviye: **${levelNum.get(userId) || 1}** | XP: **${levelXP.get(userId) || 0}**`); }
-    if (command === 'avatar') { return message.reply((message.mentions.users.first() || message.author).displayAvatarURL({ size: 1024 })); }
     
     if (command === 'temizle') {
         if (!message.member.permissions.has('ManageMessages')) return message.reply('❌ Yetkin yok!');
-        const miktar = parseInt(args[0]); if (!miktar || miktar < 1 || miktar > 100) return message.reply('⚠️ 1-100 arası sayı gir.');
-        await message.channel.bulkDelete(miktar, true); const s = await message.channel.send(`🧹 **${miktar}** mesaj silindi.`); setTimeout(() => s.delete().catch(() => {}), 3000);
+        const miktar = parseInt(args); if (!miktar || miktar < 1 || miktar > 100) return message.reply('⚠️ 1-100 arası sayı gir.');
+        await message.channel.bulkDelete(miktar, true); 
+        const s = await message.channel.send(`🧹 **${miktar}** mesaj silindi.`); setTimeout(() => s.delete().catch(() => {}), 3000);
+        logGonder(message.guild, "Chat Temizleme", `**${message.author.tag}**, <#${message.channel.id}> kanalından **${miktar}** adet mesaj sildi!`, '#e67e22');
     }
     if (command === 'sustur' || command === 'mute') {
         if (!message.member.permissions.has('MuteMembers')) return message.reply('❌ Yetkin yok!');
-        const hedef = message.guild.members.cache.get(message.mentions.users.first()?.id); const sure = parseInt(args[1]);
+        const hedef = message.guild.members.cache.get(message.mentions.users.first()?.id); const sure = parseInt(args);
         if (!hedef || !sure) return message.reply('⚠️ Kullanım: `!sustur @üye <dakika>`');
-        try { await hedef.timeout(sure * 60 * 1000); return message.reply(`🔇 **${hedef.user.username}** ${sure} dk susturuldu.`); } catch(e) { return message.reply('❌ Yetkim yetmedi.'); }
+        try { 
+            await hedef.timeout(sure * 60 * 1000); 
+            logGonder(message.guild, "Susturma Cezası", `**${message.author.tag}** yetkilisi **${hedef.user.tag}** kullanıcısını **${sure} dakika** susturdu!`, '#95a5a6');
+            return message.reply(`🔇 **${hedef.user.username}** ${sure} dk susturuldu.`); 
+        } catch(e) { return message.reply('❌ Yetkim yetmedi.'); }
     }
+    if (command === 'uyarı' || command === 'uyar') {
+        if (!message.member.permissions.has('KickMembers')) return message.reply('❌ Yetkin yok!');
+        const hedef = message.guild.members.cache.get(message.mentions.users.first()?.id); if (!hedef) return message.reply('⚠️ Üye etiketle.');
+        let currentUyar = uyarilar.get(hedef.id) || 0; currentUyar += 1; uyarilar.set(hedef.id, currentUyar);
+        
+        logGonder(message.guild, "Kullanıcı Uyarıldı", `**${message.author.tag}** yetkilisi **${hedef.user.tag}** üyesine uyarı attı. (Durum: ${currentUyar}/3)`, '#e74c3c');
+        
+        if (currentUyar >= 3) {
+            uyarilar.set(hedef.id, 0);
+            try { 
+                await hedef.timeout(15 * 60 * 1000); 
+logGonder(message.guild, "Otomatik Mute (3/3 Uyarı)", **${hedef.user.tag}** 3 uyarı sınırına ulaştığı için sistem tarafından otomatik **15 dk mute** yedi!, '#c0392b');
+return message.channel.send(🚨 **${hedef.user.username}** 3 uyarı nedeniyle otomatik **15 dk mute** yedi!);
+} catch (e) {}
+}
+return message.reply(⚠️ **${hedef.user.username}** uyarıldı. (**${currentUyar}/3**));
+}
 });
 
-// ==========================================
-// 🎛️ SEÇİM MENÜSÜ ETKİLEŞİM DİNLEYİCİSİ (DİNAMİK MENÜ)
-// ==========================================
+
+
+// --- MENÜ ETKİLEŞİM DİNLEYİCİSİ ---
 client.on('interactionCreate', async (interaction) => {
-    if (!interaction.isStringSelectMenu() || interaction.customId !== 'yardim_menu') return;
+if (!interaction.isStringSelectMenu() || interaction.customId !== 'yardim_menu') return;
 
-    const secilen = interaction.values[0];
-    const embed = new EmbedBuilder().setColor('#1a1a1c').setAuthor({ name: 'ErensiBOT Yardım Menüsü', iconURL: client.user.displayAvatarURL() });
 
-    if (secilen === 'ana_menu') {
-        embed.setDescription(
-            '🏡 **Ana Menü**\nKategori panosuna geri dön\n\n🐱 **Eğlence**\nEğlenceli ve keyifli komutlar\n\n👑 **Kullanıcı**\nProfil ve kullanıcı bilgileri\n\n🎉 **Çekiliş**\nÇekiliş oluştur ve yönet.\n\n🔨 **Yetkili**\nYetkili yönetim araçları'
-        );
-    } else if (secilen === 'eglence') {
-        embed.setTitle('🐱 Eğlence Komutları Listesi')
-             .setDescription('`!1vs1 @üye` - Düello atarsınız.\n`!adamasmaca` - Kelime oyunu oynatır.\n`!fast` - Hızlı kelime yazma yarışı.\n`!fakemesaj @üye <mesaj>` - Sahte mesaj atar.\n`!afk <sebep>` - AFK moduna geçer.\n`!ship @üye` - Aşk testi yapar.');
-    } else if (secilen === 'kullanici') {
-        embed.setTitle('👑 Kullanıcı Komutları Listesi')
-             .setDescription('`!rank` - Güncel seviyenizi ve XP durumunuzu gösterir.\n`!avatar [@üye]` - Profil fotoğrafını büyütür.\n`!sunucubilgi` - Sunucu istatistiklerini gösterir.');
-    } else if (secilen === 'yetkili') {
-        embed.setTitle('🔨 Yetkili Komutları Listesi')
-             .setDescription('`!temizle <miktar>` - Belirtilen miktarda mesajı siler.\n`!sustur @üye <dakika>` - Kullanıcıyı süreli mutelar.\n`!uyarı @üye` - Kullanıcıya ceza puanı ekler (3/3 olunca otomatik mute).');
-    }
 
-    // Mesajı güncelle (Yeniden mesaj atmadan direkt üstüne yazar)
-    await interaction.update({ embeds: [embed] });
+const secilen = interaction.values[0];
+const embed = new EmbedBuilder().setColor('#ff0000').setAuthor({ name: 'THEKANADA Yardım Menüsü', iconURL: client.user.displayAvatarURL() });
+
+
+
+if (secilen === 'ana_menu') {
+embed.setDescription('🏡 Ana Menü\nKategori panosuna geri dön\n\n🐱 Eğlence\nEğlenceli ve keyifli komutlar\n\n👑 Kullanıcı\nProfil ve kullanıcı bilgileri\n\n🔨 Yetkili\nYetkili yönetim araçları');
+} else if (secilen === 'eglence') {
+embed.setTitle('🐱 Eğlence Komutları Listesi').setDescription('!1vs1 @üye - Düello atarsınız.\n!adamasmaca - Kelime oyunu oynatır.\n!fast - Hızlı kelime yazma yarışı.\n!fakemesaj @üye <mesaj> - Sahte mesaj atar.\n!afk <sebep> - AFK moduna geçer.\n!ship @üye - Aşk testi yapar.');
+} else if (secilen === 'kullanici') {
+embed.setTitle('👑 Kullanıcı Komutları Listesi').setDescription('!rank - Güncel seviyenizi ve XP durumunuzu gösterir.\n!avatar [@üye] - Profil fotoğrafını büyütür.\n!sunucubilgi - Sunucu istatistiklerini gösterir.');
+} else if (secilen === 'yetkili') {
+embed.setTitle('🔨 Yetkili Komutları Listesi').setDescription('!temizle <miktar> - Belirtilen miktarda mesajı siler.\n!sustur @üye <dakika> - Kullanıcıyı süreli mutelar.\n!uyarı @üye - Kullanıcıya ceza puanı ekler (3/3 olunca otomatik mute).');
+}
+
+
+
+// Seçim yapıldıkça hangi üyenin nereyi incelediğini de loga yazar kanka
+logGonder(interaction.guild, "Menü Kategorisi Değiştirildi", **${interaction.user.tag}** yardım menüsünde **${secilen.toUpperCase()}** sekmesine geçiş yaptı., '#1abc9c');
+await interaction.update({ embeds: [embed] });
 });
+
+
 
 client.login(process.env.TOKEN);
