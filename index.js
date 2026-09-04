@@ -11,10 +11,12 @@ const client = new Client({
     ]
 });
 
+// --- BELLEKLER ---
 const levelXP = new Map(); const levelNum = new Map(); const uyarilar = new Map(); const afkKullanicilar = new Map(); 
 const aktifAdamAsmaca = new Map(); const aktifFastKelime = new Map(); 
 const fastKelimeHavuzu = ['kanada', 'vancouver', 'toronto', 'ottawa', 'ekonomi', 'dolar', 'akçaağaç', 'gurbet', 'yazılım', 'discord'];
 
+// WEB SUNUCU
 const app = express(); 
 const PORT = process.env.PORT || 3000;
 app.get('/', (req, res) => res.send('TheKanada Guard Bot Aktif!')); 
@@ -22,6 +24,8 @@ app.listen(PORT, () => { console.log("Web sunucusu basariyla baslatildi."); });
 
 client.on('ready', () => {
     console.log("THEKANADA Guard botu basariyla sese baglaniyor...");
+    
+    // OYNUYOR DURUMU
     client.user.setPresence({
         activities: [{ name: 'Developed By Swoxyn', type: ActivityType.Playing }],
         status: 'online',
@@ -36,30 +40,64 @@ client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
     const userId = message.author.id;
 
+    // AFK Kontrol
     if (afkKullanicilar.has(userId)) { afkKullanicilar.delete(userId); message.reply("👋 Hoş geldin! AFK durumunu temizledim."); }
     message.mentions.users.forEach((user) => { if (afkKullanicilar.has(user.id)) message.reply(`💤 **${user.username}** şu an AFK! Sebep: \`${afkKullanicilar.get(user.id)}\``); });
 
+    // Seviye Sistemi
     if (!message.content.startsWith('!')) {
         let xp = (levelXP.get(userId) || 0) + Math.floor(Math.random() * 5) + 3; levelXP.set(userId, xp);
         let lvl = levelNum.get(userId) || 1;
         if (xp >= lvl * 100) { levelNum.set(userId, lvl + 1); levelXP.set(userId, 0); message.channel.send(`🎉 **${message.author.username}** Seviye atladın! Yeni Seviyen: **${lvl + 1}** 🚀`); }
     }
 
+    // Kelime Yarışı Dinleyici
     if (aktifFastKelime.has(message.channel.id) && message.content.toLowerCase() === aktifFastKelime.get(message.channel.id)) {
         aktifFastKelime.delete(message.channel.id); return message.reply("🏁 **TEBRİKLER!** Kelimeyi ilk sen yazdın kanka! 🏆");
     }
 
+    // Komut Ayırma
     if (!message.content.startsWith('!')) return;
     const args = message.content.slice(1).trim().split(/ +/); const command = args.shift().toLowerCase();
 
+    // ==========================================
+    // 📖 !HELP / !YARDIM KOMUTU (TAM YÖNLENDİRMELİ LINK)
+    // ==========================================
     if (command === 'help' || command === 'yardım') {
-        const anaEmbed = new EmbedBuilder().setColor('#ff0000').setAuthor({ name: 'THEKANADA Yardım Menüsü', iconURL: client.user.displayAvatarURL() }).setDescription('🏡 **Ana Menü**\nKategori panosuna geri dön\n\n🐱 **Eğlence**\nEğlenceli komutlar\n\n👑 **Kullanıcı**\nKullanıcı bilgileri\n\n🔨 **Yetkili**\nYetkili araçları');
-        const menu = new StringSelectMenuBuilder().setCustomId('yardim_menu').setPlaceholder('📋 Bir kategori seçin...').addOptions([{ label: 'Ana Menü', value: 'ana_menu', emoji: '🏡' }, { label: 'Eğlence', value: 'eglence', emoji: '🐱' }, { label: 'Kullanıcı', value: 'kullanici', emoji: '👑' }, { label: 'Yetkili', value: 'yetkili', emoji: '🔨' }]);
-        const kanadaButon = new ButtonBuilder().setLabel('Kanada').setStyle(ButtonStyle.Link).setURL('https://vercel.app').setEmoji('🍁');
-        const rowMenu = new ActionRowBuilder().addComponents(menu); const rowButtons = new ActionRowBuilder().addComponents(kanadaButon);
+        const anaEmbed = new EmbedBuilder()
+            .setColor('#ff0000')
+            .setAuthor({ name: 'THEKANADA Yardım Menüsü', iconURL: client.user.displayAvatarURL() })
+            .setDescription(
+                '🏡 **Ana Menü**\nKategori panosuna geri dön\n\n' +
+                '🐱 **Eğlence**\nEğlenceli komutlar\n\n' +
+                '👑 **Kullanıcı**\nKullanıcı bilgileri\n\n' +
+                '🔨 **Yetkili**\nYetkili araçları'
+            );
+
+        const menu = new StringSelectMenuBuilder()
+            .setCustomId('yardim_menu')
+            .setPlaceholder('📋 Bir kategori seçin...')
+            .addOptions([
+                { label: 'Ana Menü', value: 'ana_menu', emoji: '🏡' },
+                { label: 'Eğlence', value: 'eglence', emoji: '🐱' },
+                { label: 'Kullanıcı', value: 'kullanici', emoji: '👑' },
+                { label: 'Yetkili', value: 'yetkili', emoji: '🔨' }
+            ]);
+
+        // YÖNLENDİRME LİNKİ KESİN OLARAK AYARLANDI kanka
+        const kanadaButon = new ButtonBuilder()
+            .setLabel('Kanada')
+            .setStyle(ButtonStyle.Link)
+            .setURL('https://thekanada.vercel.app')
+            .setEmoji('🍁');
+
+        const rowMenu = new ActionRowBuilder().addComponents(menu); 
+        const rowButtons = new ActionRowBuilder().addComponents(kanadaButon);
+        
         return message.reply({ embeds: [anaEmbed], components: [rowMenu, rowButtons] });
     }
 
+    // --- DİĞER MODERASYON KOMUTLARI ---
     if (command === '1vs1' || command === 'düello') {
         const hedef = message.mentions.users.first(); if (!hedef || hedef.id === userId) return message.reply('⚠️ Bir üye etiketle!');
         return message.channel.send(`⚔️ **DÜELLO BAŞLADI!**\n👑 Kazanan: **${Math.random() < 0.5 ? message.author.username : hedef.username}**!`);
