@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ActivityType } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
 const express = require('express');
 
@@ -21,6 +21,13 @@ const app = express(); app.get('/', (req, res) => res.send('TheKanada Guard Bot 
 
 client.on('ready', () => {
     console.log("THEKANADA Botu basariyla sese baglaniyor...");
+    
+    // --- 👑 BOTUN DURUM YAZISI AYARLANDI ---
+    client.user.setPresence({
+        activities: [{ name: 'Developed By Swoxyn', type: ActivityType.Custom }],
+        status: 'online',
+    });
+
     const channelId = '1543153290823475211'; const guildId = '1540484134361636884';   
     const connectToVoice = () => { try { joinVoiceChannel({ channelId, guildId, adapterCreator: client.guilds.cache.get(guildId).voiceAdapterCreator, selfDeaf: true, selfMute: true }); } catch (e) {} };
     connectToVoice(); setInterval(connectToVoice, 15 * 60 * 1000);
@@ -51,7 +58,7 @@ client.on('messageCreate', async (message) => {
     const args = message.content.slice(1).trim().split(/ +/); const command = args.shift().toLowerCase();
 
     // ==========================================
-    // 📖 !HELP / !YARDIM KOMUTU (SADECE KANADA BUTONLU)
+    // 📖 !HELP / !YARDIM KOMUTU
     // ==========================================
     if (command === 'help' || command === 'yardım') {
         const anaEmbed = new EmbedBuilder()
@@ -74,11 +81,11 @@ client.on('messageCreate', async (message) => {
                 { label: 'Yetkili', description: 'Yetkili yönetim komutları.', value: 'yetkili', emoji: '🔨' }
             ]);
 
-        // Sadece Kanada Yönlendirme Butonu Kalacak Şekilde Düzenlendi
+        // VERCEL.COM YERİNE DOĞRUDAN SİZİN VERCEL SİTENİZE BAĞLANDI kanka
         const kanadaButon = new ButtonBuilder()
             .setLabel('Kanada')
             .setStyle(ButtonStyle.Link)
-            .setURL('https://vercel.app')
+            .setURL('https://thekanada.vercel.app')
             .setEmoji('🍁');
 
         const rowMenu = new ActionRowBuilder().addComponents(menu);
@@ -118,13 +125,27 @@ client.on('messageCreate', async (message) => {
         if (!hedef || !sure) return message.reply('⚠️ Kullanım: `!sustur @üye <dakika>`');
         try { await hedef.timeout(sure * 60 * 1000); return message.reply(`🔇 **${hedef.user.username}** ${sure} dk susturuldu.`); } catch(e) { return message.reply('❌ Yetkim yetmiyor.'); }
     }
+    if (command === 'uyarı' || command === 'uyar') {
+        if (!message.member.permissions.has('KickMembers')) return message.reply('❌ Yetkin yok!');
+        const hedef = message.guild.members.cache.get(message.mentions.users.first()?.id); if (!hedef) return message.reply('⚠️ Üye etiketle.');
+        let currentUyar = uyarilar.get(hedef.id) || 0; currentUyar += 1; uyarilar.set(hedef.id, currentUyar);
+        
+        if (currentUyar >= 3) {
+            uyarilar.set(hedef.id, 0);
+            try { 
+                await hedef.timeout(15 * 60 * 1000); 
+                return message.channel.send(`🚨 **${hedef.user.username}** 3 uyarı nedeniyle otomatik **15 dk mute** yedi!`); 
+            } catch (e) {}
+        }
+        return message.reply(`⚠️ **${hedef.user.username}** uyarıldı. (**${currentUyar}/3**)`);
+    }
 });
 
 // --- MENÜ ETKİLEŞİM DİNLEYİCİSİ ---
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isStringSelectMenu() || interaction.customId !== 'yardim_menu') return;
 
-    const secilen = String(interaction.values[0]); 
+    const secilen = String(interaction.values); 
     const embed = new EmbedBuilder().setColor('#ff0000').setAuthor({ name: 'THEKANADA Yardım Menüsü', iconURL: client.user.displayAvatarURL() });
 
     if (secilen === 'ana_menu') {
@@ -140,4 +161,3 @@ client.on('interactionCreate', async (interaction) => {
     await interaction.update({ embeds: [embed] });
 });
 
-client.login(process.env.TOKEN);
