@@ -1,6 +1,6 @@
 const { Client, GatewayIntentBits, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, ActivityType } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
-const express = require('express'); // Express geri geldi!
+const express = require('express');
 
 const client = new Client({
     intents: [
@@ -16,23 +16,15 @@ const levelXP = new Map(); const levelNum = new Map(); const uyarilar = new Map(
 const aktifAdamAsmaca = new Map(); const aktifFastKelime = new Map(); 
 const fastKelimeHavuzu = ['kanada', 'vancouver', 'toronto', 'ottawa', 'ekonomi', 'dolar', 'akçaağaç', 'gurbet', 'yazılım', 'discord'];
 
-// --- 🌐 RENDER VE UPTIME ROBOT İÇİN WEB SUNUCUSU (UYANIK TUTUCU) ---
-const app = express();
+// WEB SUNUCU
+const app = express(); 
 const PORT = process.env.PORT || 3000;
-
-app.get('/', (req, res) => {
-    res.send('TheKanada Guard Bot 7/24 Aktif ve Koruma Altında! 🍁');
-});
-
-app.listen(PORT, () => {
-    console.log(`Web sunucusu ${PORT} portunda basariyla baslatildi.`);
-});
-// -------------------------------------------------------------------
+app.get('/', (req, res) => res.send('TheKanada Guard Bot Aktif!')); 
+app.listen(PORT, () => { console.log("Web sunucusu basariyla baslatildi."); });
 
 client.on('ready', () => {
     console.log("THEKANADA Botu basariyla sese baglaniyor...");
     
-    // Botun Durum Yazısı
     client.user.setPresence({
         activities: [{ name: 'Developed By Swoxyn', type: ActivityType.Custom }],
         status: 'online',
@@ -136,7 +128,7 @@ client.on('messageCreate', async (message) => {
     }
     if (command === 'uyarı' || command === 'uyar') {
         if (!message.member.permissions.has('KickMembers')) return message.reply('❌ Yetkin yok!');
-        const hedef = message.guild.members.cache.get(message.member.id); if (!hedef) return message.reply('⚠️ Üye etiketle.');
+        const hedef = message.guild.members.cache.get(message.mentions.users.first()?.id); if (!hedef) return message.reply('⚠️ Üye etiketle.');
         let currentUyar = uyarilar.get(hedef.id) || 0; currentUyar += 1; uyarilar.set(hedef.id, currentUyar);
         
         if (currentUyar >= 3) {
@@ -154,7 +146,7 @@ client.on('messageCreate', async (message) => {
 client.on('interactionCreate', async (interaction) => {
     if (!interaction.isStringSelectMenu() || interaction.customId !== 'yardim_menu') return;
 
-    const secilen = String(interaction.values); 
+    const secilen = String(interaction.values[0]); 
     const embed = new EmbedBuilder().setColor('#ff0000').setAuthor({ name: 'THEKANADA Yardım Menüsü', iconURL: client.user.displayAvatarURL() });
 
     if (secilen === 'ana_menu') {
@@ -164,11 +156,10 @@ client.on('interactionCreate', async (interaction) => {
     } else if (secilen === 'kullanici') {
         embed.setTitle('👑 Kullanıcı Komutları Listesi').setDescription('`!rank` - Güncel seviyenizi ve XP durumunuzu gösterir.\n`!avatar [@üye]` - Profil fotoğrafını büyütür.\n`!sunucubilgi` - Sunucu istatistiklerini gösterir.');
     } else if (secilen === 'yetkili') {
-embed.setTitle('🔨 Yetkili Komutları Listesi').setDescription('!temizle <miktar> - Belirtilen
-            miktarda mesajı siler.\n!sustur @üye <dakika> - Kullanıcıyı süreli mutelar.\n!uyarı @üye 
-    Kullanıcıya ceza puanı ekler (3/3 olunca otomatik mute).');
+        embed.setTitle('🔨 Yetkili Komutları Listesi').setDescription('`!temizle <miktar>` - Belirtilen miktarda mesajı siler.\n`!sustur @üye <dakika>` - Kullanıcıyı süreli mutelar.\n`!uyarı @üye` - Kullanıcıya ceza puanı ekler (3/3 olunca otomatik mute).');
     }
-    
+
     await interaction.update({ embeds: [embed] });
 });
+
 client.login(process.env.TOKEN);
