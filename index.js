@@ -1,4 +1,3 @@
-```js
 const {
     Client,
     GatewayIntentBits,
@@ -20,11 +19,15 @@ const client = new Client({
     ]
 });
 
-// --- BELLEKLER ---
+// ================================
+// BELLEKLER
+// ================================
+
 const levelXP = new Map();
 const levelNum = new Map();
 const uyarilar = new Map();
 const afkKullanicilar = new Map();
+
 const aktifAdamAsmaca = new Map();
 const aktifFastKelime = new Map();
 
@@ -41,18 +44,28 @@ const fastKelimeHavuzu = [
     'discord'
 ];
 
-// WEB SUNUCU
+// ================================
+// WEB SUNUCUSU
+// ================================
+
 const app = express();
+
 const PORT = process.env.PORT || 3000;
 
-app.get('/', (req, res) => res.send('Bot Aktif!'));
+app.get('/', (req, res) => {
+    res.send('Zaafsız Bot Aktif!');
+});
 
 app.listen(PORT, () => {
     console.log('Web sunucusu basariyla baslatildi.');
 });
 
+// ================================
+// BOT HAZIR
+// ================================
+
 client.on('ready', () => {
-    console.log('Bot basariyla sese baglaniyor...');
+    console.log('Zaafsız Bot aktif!');
 
     client.user.setPresence({
         activities: [
@@ -74,80 +87,117 @@ client.on('ready', () => {
             if (!guild) return;
 
             joinVoiceChannel({
-                channelId,
-                guildId,
+                channelId: channelId,
+                guildId: guildId,
                 adapterCreator: guild.voiceAdapterCreator,
                 selfDeaf: true,
                 selfMute: true
             });
-        } catch (e) {}
+        } catch (error) {
+            console.log('Ses kanalina baglanilamadi.');
+        }
     };
 
     connectToVoice();
-    setInterval(connectToVoice, 15 * 60 * 1000);
+
+    setInterval(() => {
+        connectToVoice();
+    }, 15 * 60 * 1000);
 });
+
+// ================================
+// MESAJ SİSTEMİ
+// ================================
 
 client.on('messageCreate', async (message) => {
     if (message.author.bot) return;
 
     const userId = message.author.id;
 
-    // AFK Kontrol
+    // ================================
+    // AFK KONTROL
+    // ================================
+
     if (afkKullanicilar.has(userId)) {
         afkKullanicilar.delete(userId);
+
         message.reply('👋 Hoş geldin! AFK durumunu temizledim.');
     }
 
     message.mentions.users.forEach((user) => {
         if (afkKullanicilar.has(user.id)) {
+            const sebep = afkKullanicilar.get(user.id);
+
             message.reply(
-                `💤 **${user.username}** şu an AFK! Sebep: \`${afkKullanicilar.get(user.id)}\``
+                '💤 **' +
+                user.username +
+                '** şu an AFK! Sebep: `' +
+                sebep +
+                '`'
             );
         }
     });
 
-    // Seviye Sistemi
+    // ================================
+    // SEVİYE SİSTEMİ
+    // ================================
+
     if (!message.content.startsWith('!')) {
-        let xp =
-            (levelXP.get(userId) || 0) +
-            Math.floor(Math.random() * 5) +
-            3;
+        let xp = levelXP.get(userId) || 0;
+
+        xp += Math.floor(Math.random() * 5) + 3;
 
         levelXP.set(userId, xp);
 
         let lvl = levelNum.get(userId) || 1;
 
         if (xp >= lvl * 100) {
-            levelNum.set(userId, lvl + 1);
+            lvl += 1;
+
+            levelNum.set(userId, lvl);
             levelXP.set(userId, 0);
 
             message.channel.send(
-                `🎉 **${message.author.username}** Seviye atladın! Yeni Seviyen: **${lvl + 1}** 🚀`
+                '🎉 **' +
+                message.author.username +
+                '** Seviye atladın! Yeni Seviyen: **' +
+                lvl +
+                '** 🚀'
             );
         }
     }
 
-    // Kelime Yarışı
-    if (
-        aktifFastKelime.has(message.channel.id) &&
-        message.content.toLowerCase() ===
-            aktifFastKelime.get(message.channel.id)
-    ) {
-        aktifFastKelime.delete(message.channel.id);
+    // ================================
+    // HIZLI KELİME YARIŞI
+    // ================================
 
-        return message.reply(
-            '🏁 **TEBRİKLER!** Kelimeyi ilk sen yazdın kanka! 🏆'
-        );
+    if (aktifFastKelime.has(message.channel.id)) {
+        const kelime = aktifFastKelime.get(message.channel.id);
+
+        if (message.content.toLowerCase() === kelime.toLowerCase()) {
+            aktifFastKelime.delete(message.channel.id);
+
+            return message.reply(
+                '🏁 **TEBRİKLER!** Kelimeyi ilk sen yazdın! 🏆'
+            );
+        }
     }
 
-    // Komut Ayırma
+    // ================================
+    // KOMUT KONTROL
+    // ================================
+
     if (!message.content.startsWith('!')) return;
 
-    const args = message.content.slice(1).trim().split(/ +/);
+    const args = message.content
+        .slice(1)
+        .trim()
+        .split(/\s+/);
+
     const command = args.shift().toLowerCase();
 
     // ==========================================
-    // 📖 YARDIM MENÜSÜ
+    // YARDIM MENÜSÜ
     // ==========================================
 
     if (command === 'help' || command === 'yardım') {
@@ -190,7 +240,8 @@ client.on('messageCreate', async (message) => {
                 }
             ]);
 
-        const rowMenu = new ActionRowBuilder().addComponents(menu);
+        const rowMenu = new ActionRowBuilder()
+            .addComponents(menu);
 
         return message.reply({
             embeds: [anaEmbed],
@@ -198,7 +249,10 @@ client.on('messageCreate', async (message) => {
         });
     }
 
+    // ==========================================
     // DÜELLO
+    // ==========================================
+
     if (command === '1vs1' || command === 'düello') {
         const hedef = message.mentions.users.first();
 
@@ -206,19 +260,27 @@ client.on('messageCreate', async (message) => {
             return message.reply('⚠️ Bir üye etiketle!');
         }
 
+        const kazanan =
+            Math.random() < 0.5
+                ? message.author.username
+                : hedef.username;
+
         return message.channel.send(
-            `⚔️ **DÜELLO BAŞLADI!**\n👑 Kazanan: **${
-                Math.random() < 0.5
-                    ? message.author.username
-                    : hedef.username
-            }**!`
+            '⚔️ **DÜELLO BAŞLADI!**\n👑 Kazanan: **' +
+            kazanan +
+            '**!'
         );
     }
 
+    // ==========================================
     // ADAM ASMACA
+    // ==========================================
+
     if (command === 'adamasmaca') {
         if (aktifAdamAsmaca.has(message.channel.id)) {
-            return message.reply('⚠️ Zaten aktif oyun var.');
+            return message.reply(
+                '⚠️ Zaten aktif bir oyun var.'
+            );
         }
 
         aktifAdamAsmaca.set(message.channel.id, {
@@ -233,131 +295,257 @@ client.on('messageCreate', async (message) => {
         );
     }
 
+    // ==========================================
     // FAST
+    // ==========================================
+
     if (command === 'fast') {
         const kelime =
             fastKelimeHavuzu[
-                Math.floor(Math.random() * fastKelimeHavuzu.length)
+                Math.floor(
+                    Math.random() * fastKelimeHavuzu.length
+                )
             ];
 
-        aktifFastKelime.set(message.channel.id, kelime);
+        aktifFastKelime.set(
+            message.channel.id,
+            kelime
+        );
 
         return message.channel.send(
-            `🏁 **HIZLI YAZMA YARIŞI!**:\n👉 **\`${kelime}\`**`
+            '🏁 **HIZLI YAZMA YARIŞI!**\n👉 **`' +
+            kelime +
+            '`**'
         );
     }
 
+    // ==========================================
     // AFK
+    // ==========================================
+
     if (command === 'afk') {
+        const sebep = args.join(' ') || 'Uzakta.';
+
         afkKullanicilar.set(
             userId,
-            args.join(' ') || 'Uzakta.'
+            sebep
         );
 
-        return message.reply('💤 AFK moduna geçtin.');
+        return message.reply(
+            '💤 AFK moduna geçtin.'
+        );
     }
 
+    // ==========================================
     // SHIP
+    // ==========================================
+
     if (command === 'ship') {
+        const oran =
+            Math.floor(Math.random() * 100) + 1;
+
         return message.reply(
-            `❤️ Aşk oranı: **%${Math.floor(Math.random() * 100) + 1}** 👩‍❤️‍👨`
+            '❤️ Aşk oranı: **%' +
+            oran +
+            '**'
         );
     }
 
+    // ==========================================
     // RANK
+    // ==========================================
+
     if (command === 'rank') {
+        const level =
+            levelNum.get(userId) || 1;
+
+        const xp =
+            levelXP.get(userId) || 0;
+
         return message.reply(
-            `📊 Seviye: **${levelNum.get(userId) || 1}** | XP: **${levelXP.get(userId) || 0}**`
+            '📊 Seviye: **' +
+            level +
+            '** | XP: **' +
+            xp +
+            '**'
         );
     }
 
+    // ==========================================
     // AVATAR
+    // ==========================================
+
     if (command === 'avatar') {
+        const hedef =
+            message.mentions.users.first() ||
+            message.author;
+
         return message.reply(
-            (
-                message.mentions.users.first() ||
-                message.author
-            ).displayAvatarURL({
+            hedef.displayAvatarURL({
                 size: 1024
             })
         );
     }
 
+    // ==========================================
     // SUNUCU BİLGİ
+    // ==========================================
+
     if (command === 'sunucubilgi') {
-        return message.reply(
-            `🏰 Sunucu Adı: **${message.guild.name}** | Üye: **${message.guild.memberCount}**`
-        );
-    }
-
-    // TEMİZLE
-    if (command === 'temizle') {
-        if (!message.member.permissions.has('ManageMessages')) {
-            return message.reply('❌ Yetkin yok!');
-        }
-
-        const miktar = parseInt(args);
-
-        if (!miktar || miktar < 1 || miktar > 100) {
+        if (!message.guild) {
             return message.reply(
-                '⚠️ 1-100 arası sayı gir.'
+                '❌ Bu komut sadece sunucuda kullanılabilir.'
             );
         }
 
-        await message.channel.bulkDelete(miktar, true);
-
-        const s = await message.channel.send(
-            `🧹 **${miktar}** mesaj silindi.`
+        return message.reply(
+            '🏰 Sunucu Adı: **' +
+            message.guild.name +
+            '** | Üye: **' +
+            message.guild.memberCount +
+            '**'
         );
-
-        setTimeout(() => {
-            s.delete().catch(() => {});
-        }, 3000);
     }
 
+    // ==========================================
+    // TEMİZLE
+    // ==========================================
+
+    if (command === 'temizle') {
+        if (
+            !message.member.permissions.has('ManageMessages')
+        ) {
+            return message.reply(
+                '❌ Yetkin yok!'
+            );
+        }
+
+        const miktar =
+            parseInt(args[0]);
+
+        if (
+            !miktar ||
+            miktar < 1 ||
+            miktar > 100
+        ) {
+            return message.reply(
+                '⚠️ 1-100 arası bir sayı gir.'
+            );
+        }
+
+        await message.channel.bulkDelete(
+            miktar,
+            true
+        );
+
+        const silindiMesaji =
+            await message.channel.send(
+                '🧹 **' +
+                miktar +
+                '** mesaj silindi.'
+            );
+
+        setTimeout(() => {
+            silindiMesaji
+                .delete()
+                .catch(() => {});
+        }, 3000);
+
+        return;
+    }
+
+    // ==========================================
     // SUSTUR
-    if (command === 'sustur' || command === 'mute') {
-        if (!message.member.permissions.has('MuteMembers')) {
-            return message.reply('❌ Yetkin yok!');
+    // ==========================================
+
+    if (
+        command === 'sustur' ||
+        command === 'mute'
+    ) {
+        if (
+            !message.member.permissions.has('ModerateMembers')
+        ) {
+            return message.reply(
+                '❌ Yetkin yok!'
+            );
+        }
+
+        const hedefUser =
+            message.mentions.users.first();
+
+        if (!hedefUser) {
+            return message.reply(
+                '⚠️ Kullanım: `!sustur @üye <dakika>`'
+            );
         }
 
         const hedef =
             message.guild.members.cache.get(
-                message.mentions.users.first()?.id
+                hedefUser.id
             );
 
-        const sure = parseInt(args);
+        const sure =
+            parseInt(args[1]);
 
-        if (!hedef || !sure) {
+        if (!hedef || !sure || sure < 1) {
             return message.reply(
                 '⚠️ Kullanım: `!sustur @üye <dakika>`'
             );
         }
 
         try {
-            await hedef.timeout(sure * 60 * 1000);
+            await hedef.timeout(
+                sure * 60 * 1000
+            );
 
             return message.reply(
-                `🔇 **${hedef.user.username}** ${sure} dk susturuldu.`
+                '🔇 **' +
+                hedef.user.username +
+                '** ' +
+                sure +
+                ' dakika susturuldu.'
             );
-        } catch (e) {
-            return message.reply('❌ Yetkim yetmiyor.');
+        } catch (error) {
+            return message.reply(
+                '❌ Üyeyi susturamadım. Bot yetkilerini kontrol et.'
+            );
         }
     }
 
+    // ==========================================
     // UYARI
-    if (command === 'uyarı' || command === 'uyar') {
-        if (!message.member.permissions.has('KickMembers')) {
-            return message.reply('❌ Yetkin yok!');
+    // ==========================================
+
+    if (
+        command === 'uyarı' ||
+        command === 'uyar'
+    ) {
+        if (
+            !message.member.permissions.has('KickMembers')
+        ) {
+            return message.reply(
+                '❌ Yetkin yok!'
+            );
+        }
+
+        const hedefUser =
+            message.mentions.users.first();
+
+        if (!hedefUser) {
+            return message.reply(
+                '⚠️ Üye etiketle.'
+            );
         }
 
         const hedef =
             message.guild.members.cache.get(
-                message.mentions.users.first()?.id
+                hedefUser.id
             );
 
         if (!hedef) {
-            return message.reply('⚠️ Üye etiketle.');
+            return message.reply(
+                '⚠️ Üye bulunamadı.'
+            );
         }
 
         let currentUyar =
@@ -371,42 +559,56 @@ client.on('messageCreate', async (message) => {
         );
 
         if (currentUyar >= 3) {
-            uyarilar.set(hedef.id, 0);
+            uyarilar.set(
+                hedef.id,
+                0
+            );
 
             try {
-                await hedef.timeout(15 * 60 * 1000);
+                await hedef.timeout(
+                    15 * 60 * 1000
+                );
 
                 return message.channel.send(
-                    `🚨 **${hedef.user.username}** otomatik **15 dk mute** yedi!`
+                    '🚨 **' +
+                    hedef.user.username +
+                    '** otomatik olarak **15 dakika susturuldu!**'
                 );
-            } catch (e) {}
+            } catch (error) {
+                return message.reply(
+                    '❌ Otomatik susturma yapılamadı.'
+                );
+            }
         }
 
         return message.reply(
-            `⚠️ **${hedef.user.username}** uyarıldı. (**${currentUyar}/3**)`
+            '⚠️ **' +
+            hedef.user.username +
+            '** uyarıldı. (**' +
+            currentUyar +
+            '/3**)'
         );
     }
 });
 
 // ==========================================
-// YARDIM MENÜSÜ SEÇİM SİSTEMİ
+// YARDIM MENÜSÜ ETKİLEŞİMLERİ
 // ==========================================
 
 client.on('interactionCreate', async (interaction) => {
-    if (
-        !interaction.isStringSelectMenu() ||
-        interaction.customId !== 'yardim_menu'
-    ) {
-        return;
-    }
+    if (!interaction.isStringSelectMenu()) return;
 
-    const secilen = String(interaction.values);
+    if (interaction.customId !== 'yardim_menu') return;
+
+    const secilen =
+        interaction.values[0];
 
     const embed = new EmbedBuilder()
         .setColor('#ff0000')
         .setAuthor({
             name: 'Zaafsız Bot Yardım Menüsü',
-            iconURL: client.user.displayAvatarURL()
+            iconURL:
+                client.user.displayAvatarURL()
         });
 
     if (secilen === 'ana_menu') {
@@ -418,36 +620,41 @@ client.on('interactionCreate', async (interaction) => {
         );
     }
 
-    else if (secilen === 'eglence') {
+    if (secilen === 'eglence') {
         embed
-            .setTitle('🐱 Eğlence Komutları Listesi')
+            .setTitle(
+                '🐱 Eğlence Komutları Listesi'
+            )
             .setDescription(
                 '`!1vs1 @üye` - Düello atarsınız.\n' +
-                '`!adamasmaca` - Kelime oyunu oynatır.\n' +
+                '`!adamasmaca` - Kelime oyunu.\n' +
                 '`!fast` - Hızlı kelime yarışı.\n' +
-                '`!fakemesaj @üye <mesaj>` - Sahte mesaj.\n' +
                 '`!afk <sebep>` - AFK modu.\n' +
                 '`!ship @üye` - Aşk testi.'
             );
     }
 
-    else if (secilen === 'kullanici') {
+    if (secilen === 'kullanici') {
         embed
-            .setTitle('👑 Kullanıcı Komutları Listesi')
+            .setTitle(
+                '👑 Kullanıcı Komutları Listesi'
+            )
             .setDescription(
-                '`!rank` - Seviye/XP durumu.\n' +
-                '`!avatar [@üye]` - Avatar büyütür.\n' +
-                '`!sunucubilgi` - Sunucu istatistikleri.'
+                '`!rank` - Seviye ve XP durumu.\n' +
+                '`!avatar [@üye]` - Avatar gösterir.\n' +
+                '`!sunucubilgi` - Sunucu bilgileri.'
             );
     }
 
-    else if (secilen === 'yetkili') {
+    if (secilen === 'yetkili') {
         embed
-            .setTitle('🔨 Yetkili Komutları Listesi')
+            .setTitle(
+                '🔨 Yetkili Komutları Listesi'
+            )
             .setDescription(
                 '`!temizle <miktar>` - Mesaj siler.\n' +
-                '`!sustur @üye <dakika>` - Süreli mute.\n' +
-                '`!uyarı @üye` - Ceza puanı ekler.'
+                '`!sustur @üye <dakika>` - Süreli susturma.\n' +
+                '`!uyarı @üye` - Uyarı verir.'
             );
     }
 
@@ -456,5 +663,8 @@ client.on('interactionCreate', async (interaction) => {
     });
 });
 
+// ==========================================
+// BOT GİRİŞİ
+// ==========================================
+
 client.login(process.env.TOKEN);
-```
