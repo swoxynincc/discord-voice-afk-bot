@@ -930,7 +930,7 @@ client.on(
             new EmbedBuilder()
                 .setColor('#ff0000')
                 .setAuthor({
-                    name: 'Zaafsız Bot Yardım Menüsü',
+                    name: 'Zen Shop Bot Yardım Menüsü',
                     iconURL:
                         client.user.displayAvatarURL()
                 });
