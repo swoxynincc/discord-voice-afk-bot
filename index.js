@@ -282,35 +282,6 @@ client.on(
         }
 
         // ==========================================
-        // FAST KELİME
-        // ==========================================
-
-        if (
-            aktifFastKelime.has(
-                message.channel.id
-            )
-        ) {
-            const kelime =
-                aktifFastKelime.get(
-                    message.channel.id
-                );
-
-            if (
-                message.content
-                    .toLowerCase() ===
-                kelime.toLowerCase()
-            ) {
-                aktifFastKelime.delete(
-                    message.channel.id
-                );
-
-                return message.reply(
-                    '🏁 **TEBRİKLER!** Kelimeyi ilk sen yazdın! 🏆'
-                );
-            }
-        }
-
-        // ==========================================
         // KOMUT KONTROL
         // ==========================================
 
@@ -343,7 +314,7 @@ client.on(
                 new EmbedBuilder()
                     .setColor('#ff0000')
                     .setAuthor({
-                        name: 'Zaafsız Bot Yardım Menüsü',
+                        name: 'Zen Shop Bot Yardım Menüsü',
                         iconURL:
                             client.user.displayAvatarURL()
                     })
@@ -401,116 +372,6 @@ client.on(
             });
         }
 
-        // ==========================================
-        // DÜELLO
-        // ==========================================
-
-        if (
-            command === '1vs1' ||
-            command === 'düello'
-        ) {
-            const hedef =
-                message.mentions.users.first();
-
-            if (
-                !hedef ||
-                hedef.id === userId
-            ) {
-                return message.reply(
-                    '⚠️ Bir üye etiketle!'
-                );
-            }
-
-            const kazanan =
-                Math.random() < 0.5
-                    ? message.author.username
-                    : hedef.username;
-
-            return message.channel.send(
-                '⚔️ **DÜELLO BAŞLADI!**\n👑 Kazanan: **' +
-                kazanan +
-                '**!'
-            );
-        }
-
-        // ==========================================
-        // ADAM ASMACA
-        // ==========================================
-
-        if (
-            command === 'adamasmaca'
-        ) {
-            if (
-                aktifAdamAsmaca.has(
-                    message.channel.id
-                )
-            ) {
-                return message.reply(
-                    '⚠️ Zaten aktif bir oyun var.'
-                );
-            }
-
-            aktifAdamAsmaca.set(
-                message.channel.id,
-                {
-                    kelime: 'kanada',
-                    tahminEdilenler: [],
-                    hak: 6
-                }
-            );
-
-            return message.reply(
-                '🎮 **Adam Asmaca Başladı!**\nKelime: `_ _ _ _ _ _`\nHak: **6**'
-            );
-        }
-
-        // ==========================================
-        // FAST
-        // ==========================================
-
-        if (
-            command === 'fast'
-        ) {
-            const kelime =
-                fastKelimeHavuzu[
-                    Math.floor(
-                        Math.random() *
-                        fastKelimeHavuzu.length
-                    )
-                ];
-
-            aktifFastKelime.set(
-                message.channel.id,
-                kelime
-            );
-
-            return message.channel.send(
-                '🏁 **HIZLI YAZMA YARIŞI!**\n👉 Kelime: **`' +
-                kelime +
-                '`**'
-            );
-        }
-
-        // ==========================================
-        // AFK
-        // ==========================================
-
-        if (
-            command === 'afk'
-        ) {
-            const sebep =
-                args.join(' ') ||
-                'Uzakta.';
-
-            afkKullanicilar.set(
-                userId,
-                sebep
-            );
-
-            return message.reply(
-                '💤 AFK moduna geçtin.'
-            );
-        }
 
         // ==========================================
         // SHIP
@@ -570,23 +431,6 @@ client.on(
                 })
             );
         }
-
-        // ==========================================
-        // SUNUCU BİLGİ
-        // ==========================================
-
-        if (
-            command === 'sunucubilgi'
-        ) {
-            return message.reply(
-                '🏰 Sunucu: **' +
-                message.guild.name +
-                '**\n👥 Üye Sayısı: **' +
-                message.guild.memberCount +
-                '**'
-            );
-        }
-
         // ==========================================
         // TEMİZLE
         // ==========================================
@@ -831,7 +675,7 @@ client.on(
                 )
             ) {
                 return message.reply(
-                    '❌ Yetkin yok!'
+                    'Yetkin yok noob'
                 );
             }
 
@@ -844,7 +688,7 @@ client.on(
                 !hedef
             ) {
                 return message.reply(
-                    '⚠️ Bir üyeyi etiketle veya mesajına reply at.'
+                    'Kişiyi etiketle veya mesajına reply at.'
                 );
             }
 
@@ -1096,28 +940,8 @@ client.on(
         ) {
             embed.setDescription(
                 '🏡 **Ana Menü**\nKategori panosuna geri dön\n\n' +
-                '🐱 **Eğlence**\nEğlenceli komutlar\n\n' +
                 '👑 **Kullanıcı**\nKullanıcı bilgileri\n\n' +
                 '🔨 **Yetkili**\nYetkili araçları'
-            );
-        }
-
-        if (
-            secilen === 'eglence'
-        ) {
-            embed
-                .setTitle(
-                    '🐱 Eğlence Komutları'
-                )
-                .setDescription(
-                    '`!1vs1 @üye` - Düello.\n' +
-                    '`!adamasmaca` - Adam asmaca.\n' +
-                    '`!fast` - Hızlı yazma.\n' +
-                    '`!afk <sebep>` - AFK modu.\n' +
-                    '`!ship @üye` - Aşk oranı.'
-                );
-        }
-
         if (
             secilen === 'kullanici'
         ) {
