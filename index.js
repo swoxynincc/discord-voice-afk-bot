@@ -86,7 +86,7 @@ client.once('ready', () => {
     });
 
     const channelId = '1549047535039938633';
-    const guildId = '1540484134361636884';
+    const guildId = '1549047532108382319';
 
     const connectToVoice = () => {
         try {
