@@ -85,7 +85,7 @@ client.once('ready', () => {
         status: 'online'
     });
 
-    const channelId = '1543153290823475211';
+    const channelId = '1549047535039938633';
     const guildId = '1540484134361636884';
 
     const connectToVoice = () => {
@@ -942,6 +942,9 @@ client.on(
                 '🏡 **Ana Menü**\nKategori panosuna geri dön\n\n' +
                 '👑 **Kullanıcı**\nKullanıcı bilgileri\n\n' +
                 '🔨 **Yetkili**\nYetkili araçları'
+            );
+        }
+
         if (
             secilen === 'kullanici'
         ) {
