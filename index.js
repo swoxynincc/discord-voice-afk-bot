@@ -320,7 +320,6 @@ client.on(
                     })
                     .setDescription(
                         '🏡 **Ana Menü**\nKategori panosuna geri dön\n\n' +
-                        '🐱 **Eğlence**\nEğlenceli komutlar\n\n' +
                         '👑 **Kullanıcı**\nKullanıcı bilgileri\n\n' +
                         '🔨 **Yetkili**\nYetkili araçları'
                     );
@@ -338,11 +337,6 @@ client.on(
                             label: 'Ana Menü',
                             value: 'ana_menu',
                             emoji: '🏡'
-                        },
-                        {
-                            label: 'Eğlence',
-                            value: 'eglence',
-                            emoji: '🐱'
                         },
                         {
                             label: 'Kullanıcı',
@@ -903,7 +897,7 @@ client.on(
 );
 
 // ==========================================
-// YARDIM MENÜSÜ
+// YARDIM MENÜSÜ INTERACTION
 // ==========================================
 
 client.on(
